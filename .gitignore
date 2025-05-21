@@ -1,0 +1,84 @@
+# ========================
+# Allgemeine Ausschlüsse
+# ========================
+*.log
+*.tmp
+*.swp
+*.swo
+*.DS_Store
+*.env
+*.env.local
+*.env.*.local
+
+# JetBrains IDEs (z. B. IntelliJ, WebStorm, Android Studio)
+.idea/
+*.iml
+
+# VS Code
+.vscode/
+
+# macOS
+.DS_Store
+
+# Linux
+*~
+.nfs*
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# ========================
+# Node.js spezifisch (Backend_controler)
+# ========================
+Backend_controler/node_modules/
+Backend_controler/dist/
+Backend_controler/build/
+Backend_controler/npm-debug.log*
+Backend_controler/yarn-debug.log*
+Backend_controler/yarn-error.log*
+Backend_controler/package-lock.json # Optional
+Backend_controler/.next/
+Backend_controler/.nuxt/
+Backend_controler/.turbo/
+Backend_controler/.vercel/
+Backend_controler/.env
+Backend_controler/.env.*
+
+# ========================
+# Flutter spezifisch (Game_Controler)
+# ========================
+Game_Controler/.dart_tool/
+Game_Controler/.idea/
+Game_Controler/.packages
+Game_Controler/.flutter-plugins
+Game_Controler/.flutter-plugins-dependencies
+Game_Controler/.metadata
+Game_Controler/.vscode/
+Game_Controler/build/
+Game_Controler/ios/Flutter/Flutter.framework
+Game_Controler/ios/Flutter/App.framework
+Game_Controler/ios/Pods/
+Game_Controler/pubspec.lock
+Game_Controler/android/.gradle/
+Game_Controler/android/captures/
+Game_Controler/android/app/build/
+Game_Controler/web/generated_plugin_registrant.dart
+Game_Controler/windows/runner/Debug/
+Game_Controler/windows/runner/Release/
+Game_Controler/linux/flutter/ephemeral/
+Game_Controler/macos/Flutter/ephemeral/
+Game_Controler/test/*.tmp
+
+# Optional: ignorieren von personalisierten Konfigs
+Game_Controler/.env
+Game_Controler/.env.*
+
+# ========================
+# Sonstiges
+# ========================
+*.bak
+*.old
+*.orig
+*.rej
