@@ -20,6 +20,10 @@ class _SettingsPageState extends State<SettingsPage> {
   };
 
   late TextEditingController _ipController;
+  late TextEditingController _maxSpeedController;
+  late TextEditingController _deadzoneController;
+  late TextEditingController _smoothFactorController;
+  late TextEditingController _moveThrottleController;
 
   @override
   void initState() {
@@ -32,18 +36,22 @@ class _SettingsPageState extends State<SettingsPage> {
 
     final settings = context.read<SettingsProvider>();
     _ipController = TextEditingController(text: settings.ipAddress);
+    _maxSpeedController = TextEditingController(text: settings.maxSpeed);
+    _deadzoneController = TextEditingController(text: settings.deadzone);
+    _smoothFactorController = TextEditingController(text: settings.smoothFactor);
+    _moveThrottleController = TextEditingController(text: settings.moveThrottle);
   }
 
   @override
   void dispose() {
     SystemChrome.setPreferredOrientations(DeviceOrientation.values);
     _ipController.dispose();
+    _maxSpeedController.dispose();
+    _deadzoneController.dispose();
+    _smoothFactorController.dispose();
+    _moveThrottleController.dispose();
     super.dispose();
   }
-
-
-
-
 
   Widget _buildButtonDisplay(BuildContext context, String side, int index) {
     final buttonName = fixedConfig[side]![index];
@@ -67,11 +75,10 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget _buildNumericField(
       BuildContext context,
       String label,
-      String value,
+      TextEditingController controller,
       Function(String) onChanged,
       ) {
     final isDarkMode = context.watch<SettingsProvider>().isDarkMode;
-    final controller = TextEditingController(text: value);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: TextField(
@@ -142,7 +149,6 @@ class _SettingsPageState extends State<SettingsPage> {
               final settings = context.read<SettingsProvider>();
               settings.setIpAddress(_ipController.text); // IP speichern
               _sendSettingsToServer(context);            // senden
-              // Navigator.pop(context); ← optional, wenn du danach zurück willst
             },
             tooltip: 'Einstellungen speichern',
           ),
@@ -182,10 +188,10 @@ class _SettingsPageState extends State<SettingsPage> {
             style: TextStyle(color: isDarkMode ? Colors.white : Colors.black, fontSize: 18),
             textAlign: TextAlign.center,
           ),
-          _buildNumericField(context, 'MAX_SPEED', settings.maxSpeed, settings.setMaxSpeed),
-          _buildNumericField(context, 'DEADZONE', settings.deadzone, settings.setDeadzone),
-          _buildNumericField(context, 'SMOOTH_FACTOR', settings.smoothFactor, settings.setSmoothFactor),
-          _buildNumericField(context, 'MOVE_THROTTLE (ms)', settings.moveThrottle, settings.setMoveThrottle),
+          _buildNumericField(context, 'MAX_SPEED', _maxSpeedController, settings.setMaxSpeed),
+          _buildNumericField(context, 'DEADZONE', _deadzoneController, settings.setDeadzone),
+          _buildNumericField(context, 'SMOOTH_FACTOR', _smoothFactorController, settings.setSmoothFactor),
+          _buildNumericField(context, 'MOVE_THROTTLE (ms)', _moveThrottleController, settings.setMoveThrottle),
           const Divider(),
           Text(
             'Linke Buttons',

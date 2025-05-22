@@ -103,7 +103,8 @@ class _GamepadPageState extends State<GamepadPage> {
 
         // Button labels for each side
         final List<String> buttonLabels = side == 'left'
-            ? ['Left Click', 'Right Click', 'L3']
+            ? ['Left Click', 'Right Click', 'Middle Mouse'
+            '']
             : ['R1', 'R2', 'R3'];
 
         return Center(
