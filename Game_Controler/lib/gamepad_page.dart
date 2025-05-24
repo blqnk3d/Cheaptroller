@@ -61,7 +61,7 @@ class _GamepadPageState extends State<GamepadPage> {
     serverAddress = InternetAddress(ip);
     RawDatagramSocket.bind(InternetAddress.anyIPv4, 0).then((s) {
       socket = s;
-      setState(() {}); // refresh UI
+      setState(() {});
     });
   }
 
@@ -98,14 +98,13 @@ class _GamepadPageState extends State<GamepadPage> {
   Widget buildJoystick(String side) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        // Increased joystick size factor
         final joystickSize = constraints.maxHeight * 0.5;
 
-        // Button labels for each side
         final List<String> buttonLabels = side == 'left'
-            ? ['Left Click', 'Right Click', 'Middle Mouse'
-            '']
+            ? ['Left Click', 'Right Click', 'Middle Mouse']
             : ['R1', 'R2', 'R3'];
+
+        bool hasMoved = false;
 
         return Center(
           child: Column(
@@ -124,8 +123,8 @@ class _GamepadPageState extends State<GamepadPage> {
                           onTapUp: (_) => sendButton(side, i, false),
                           onTapCancel: () => sendButton(side, i, false),
                           child: Container(
-                            width: 70,  // larger button width
-                            height: 70, // larger button height
+                            width: 70,
+                            height: 70,
                             decoration: BoxDecoration(
                               color: Colors.transparent,
                               border: Border.all(color: Colors.white, width: 2),
@@ -134,15 +133,16 @@ class _GamepadPageState extends State<GamepadPage> {
                             child: const Icon(
                               Icons.circle,
                               color: Colors.white70,
-                              size: 32, // larger icon size
+                              size: 32,
                             ),
                           ),
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          buttonLabels[i],
-                          style: const TextStyle(
-                              color: Colors.white, fontSize: 14),
+                          side == 'left'
+                              ? ['Left Click', 'Right Click', 'Middle Mouse'][i]
+                              : ['R1', 'R2', 'R3'][i],
+                          style: const TextStyle(color: Colors.white, fontSize: 14),
                         ),
                       ],
                     ),
@@ -150,11 +150,37 @@ class _GamepadPageState extends State<GamepadPage> {
                 }),
               ),
               const SizedBox(height: 24),
+
               // Joystick area
               SizedBox(
-                width: joystickSize,
-                height: joystickSize,
-                child: Joystick(
+                width: constraints.maxHeight * 0.5,
+                height: constraints.maxHeight * 0.5,
+                child: side == 'left'
+                    ? GestureDetector(
+                  onPanDown: (_) {
+                    hasMoved = false;
+                  },
+                  onPanEnd: (_) {
+                    if (!hasMoved) {
+                      sendButton("left", 0, true);
+                      Future.delayed(const Duration(milliseconds: 100), () {
+                        sendButton("left", 0, false);
+                      });
+                    }
+                  },
+                  child: Joystick(
+                    mode: JoystickMode.all,
+                    listener: (details) {
+                      if (details.x.abs() > 0.2 || details.y.abs() > 0.2) {
+                        hasMoved = true;
+                      }
+                      joystickPositions[side] = Offset(details.x, details.y);
+                      lastSentTime[side] = DateTime.now();
+                      sendMove(side, details.x, details.y);
+                    },
+                  ),
+                )
+                    : Joystick(
                   mode: JoystickMode.all,
                   listener: (details) {
                     joystickPositions[side] = Offset(details.x, details.y);
@@ -171,6 +197,7 @@ class _GamepadPageState extends State<GamepadPage> {
             ],
           ),
         );
+
       },
     );
   }
@@ -184,6 +211,7 @@ class _GamepadPageState extends State<GamepadPage> {
           : Row(
         children: [
           Expanded(child: buildJoystick("left")),
+          SizedBox(width: 100),
           Expanded(child: buildJoystick("right")),
         ],
       ),
