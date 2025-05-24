@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 class SettingsProvider extends ChangeNotifier {
   bool _isDarkMode = false;
   String _ipAddress = '';
-  String _maxSpeed = '80';
-  String _deadzone = '0.1';
-  String _smoothFactor = '0.3';
-  String _moveThrottle = '${(1000 / 60).toStringAsFixed(0)}';
+  String _maxSpeed = '50';
+  String _deadzone = '0.001';
+  String _smoothFactor = '0.5';
+  String _moveThrottle = '1';
 
   bool get isDarkMode => _isDarkMode;
   String get ipAddress => _ipAddress;

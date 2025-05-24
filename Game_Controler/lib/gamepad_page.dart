@@ -38,6 +38,8 @@ class _GamepadPageState extends State<GamepadPage> {
       DeviceOrientation.landscapeRight,
     ]);
 
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+
     // Send idle updates regularly
     idleTimer = Timer.periodic(const Duration(milliseconds: 200), (_) {
       for (var side in ['left', 'right']) {
@@ -69,6 +71,7 @@ class _GamepadPageState extends State<GamepadPage> {
   void dispose() {
     socket?.close();
     idleTimer?.cancel();
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     super.dispose();
   }
 
@@ -139,9 +142,7 @@ class _GamepadPageState extends State<GamepadPage> {
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          side == 'left'
-                              ? ['Left Click', 'Right Click', 'Middle Mouse'][i]
-                              : ['R1', 'R2', 'R3'][i],
+                          buttonLabels[i],
                           style: const TextStyle(color: Colors.white, fontSize: 14),
                         ),
                       ],
@@ -153,8 +154,8 @@ class _GamepadPageState extends State<GamepadPage> {
 
               // Joystick area
               SizedBox(
-                width: constraints.maxHeight * 0.5,
-                height: constraints.maxHeight * 0.5,
+                width: joystickSize,
+                height: joystickSize,
                 child: side == 'left'
                     ? GestureDetector(
                   onPanDown: (_) {
@@ -170,6 +171,29 @@ class _GamepadPageState extends State<GamepadPage> {
                   },
                   child: Joystick(
                     mode: JoystickMode.all,
+                    stick: Container(
+                      width: 60,
+                      height: 60,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[700],
+                        shape: BoxShape.circle,
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Colors.black26,
+                            blurRadius: 4,
+                            offset: Offset(2, 2),
+                          ),
+                        ],
+                      ),
+                    ),
+                    base: Container(
+                      width: joystickSize,
+                      height: joystickSize,
+                      decoration: const BoxDecoration(
+                        color: Colors.grey,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
                     listener: (details) {
                       if (details.x.abs() > 0.2 || details.y.abs() > 0.2) {
                         hasMoved = true;
@@ -182,6 +206,29 @@ class _GamepadPageState extends State<GamepadPage> {
                 )
                     : Joystick(
                   mode: JoystickMode.all,
+                  stick: Container(
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[700],
+                      shape: BoxShape.circle,
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Colors.black26,
+                          blurRadius: 4,
+                          offset: Offset(2, 2),
+                        ),
+                      ],
+                    ),
+                  ),
+                  base: Container(
+                    width: joystickSize,
+                    height: joystickSize,
+                    decoration: const BoxDecoration(
+                      color: Colors.grey,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
                   listener: (details) {
                     joystickPositions[side] = Offset(details.x, details.y);
                     lastSentTime[side] = DateTime.now();
@@ -189,18 +236,14 @@ class _GamepadPageState extends State<GamepadPage> {
                   },
                 ),
               ),
-              const SizedBox(height: 12),
-              Text(
-                side == 'left' ? 'WASD' : 'Mouse',
-                style: const TextStyle(color: Colors.white, fontSize: 16),
-              ),
             ],
           ),
         );
-
       },
     );
   }
+
+
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -211,7 +254,7 @@ class _GamepadPageState extends State<GamepadPage> {
           : Row(
         children: [
           Expanded(child: buildJoystick("left")),
-          SizedBox(width: 100),
+          SizedBox(width: 150),
           Expanded(child: buildJoystick("right")),
         ],
       ),
