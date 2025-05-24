@@ -4,14 +4,12 @@ const os = require('os');
 
 const UDP_PORT = 8080;
 let MAX_SPEED = 80;
-let DEADZONE = 0.1;
-let SMOOTH_FACTOR = 0.3;
-let MOVE_THROTTLE = 1000 / 60;
+let DEADZONE = 0.05;
+let SMOOTH_FACTOR = 0.5;
+let MOVE_THROTTLE = 1;
 
-const LEFT_STICK_RELEASE_DELAY = 150;
 
 const BUTTON_MAPPING = {
-    left: { 0: 'space', 1: 'shift' },
     right: { 0: 'enter', 1: 'tab' },
 };
 
@@ -20,6 +18,7 @@ let dynamicConfig = {
     DEADZONE,
     SMOOTH_FACTOR,
     MOVE_THROTTLE,
+
 };
 
 function applyConfig(updates) {
