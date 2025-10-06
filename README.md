@@ -46,5 +46,5 @@ Connect your phone running the Flutter app to the Node.js server on your local n
 ## Frontend
 - No Settings needed (because of backend)
 - user feedback (controller / buttons -> vibrating)
-
+- pop up (like whatsapp message) for notification ( connection lost , problems debug)
 
