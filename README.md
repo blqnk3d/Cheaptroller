@@ -33,3 +33,18 @@ Coming soon. Stay tuned for setup instructions!
 Connect your phone running the Flutter app to the Node.js server on your local network via UDP port 8080 to start controlling your PC with joysticks and mouse inputs.
 
 
+# ideas to make it better.
+
+## Backend
+- a way to autoconnect after one connection manuel.
+- qr code or something to settingspage for phone / pc 
+- ignoring frontend config (because not needed)
+- if no input on phone / minimal input on joysticks -> no sending 1.23.123412341 +e12 numbers
+- user feedback
+- clean up
+
+## Frontend
+- No Settings needed (because of backend)
+- user feedback (controller / buttons -> vibrating)
+
+

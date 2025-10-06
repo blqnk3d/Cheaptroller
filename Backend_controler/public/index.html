@@ -72,11 +72,14 @@
     .key.active { background: #0ff; color: #111; }
     .mouse-pos { margin-top: 0.5rem; }
     .slider-value { float: right; font-weight: bold; color: #0ff; }
+    #myip { margin-bottom: 1rem; font-weight: bold; font-size: 1.1rem; color: #0f0; }
 </style>
 </head>
 <body>
 
 <h1>🎮 Controller Dashboard</h1>
+<div id="myip">Fetching IP...</div>
+
 <div class="container">
     <div class="panel">
         <h2>Config</h2>
@@ -140,6 +143,7 @@ const rightDot = document.getElementById('rightDot');
 const mousePosEl = document.getElementById('mousePos');
 const keysContainer = document.getElementById('keysContainer');
 const frontendToggle = document.getElementById('frontendToggle');
+const myipEl = document.getElementById('myip');
 
 // Slider value spans
 const MAX_SPEED_val = document.getElementById('MAX_SPEED_val');
@@ -175,6 +179,13 @@ fetch('/api/status')
     .then(data => {
         frontendToggle.checked = data.allowFrontendConfig;
         updateFormState(data.allowFrontendConfig);
+    });
+
+// Fetch server IP(s)
+fetch('/api/myip')
+    .then(res => res.json())
+    .then(data => {
+        myipEl.textContent = `Connect your phone to: ${data.ips[0]}:${data.port}`;
     });
 
 // Handle toggle change

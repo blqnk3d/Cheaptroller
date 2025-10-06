@@ -319,3 +319,8 @@ function getAllLocalIPs() {
                 ips.push(net.address);
     return ips.length > 0 ? ips : ['127.0.0.1'];
 }
+
+// API endpoint
+app.get('/api/myip', (req, res) => {
+    res.json({ ips: getAllLocalIPs(), port: WEB_PORT });
+});
