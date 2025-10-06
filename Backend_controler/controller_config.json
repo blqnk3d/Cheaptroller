@@ -1,0 +1,10 @@
+{
+  "MAX_SPEED": 105,
+  "DEADZONE": 0.15,
+  "DEADZONE_EXIT": 0.035,
+  "SMOOTH_TIME": 0.1,
+  "TICK_RATE": 60,
+  "TURN_RATE_DEG_PER_SEC": 720,
+  "SENSITIVITY_CURVE": 1,
+  "allowFrontendConfig": true
+}
