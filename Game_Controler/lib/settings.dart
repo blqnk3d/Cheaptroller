@@ -40,10 +40,7 @@ class _SettingsPageState extends State<SettingsPage> {
     final settings = context.read<SettingsProvider>();
 
     try {
-      final data = jsonEncode({
-        'type': 'ip_update',
-        'ip': settings.ipAddress,
-      });
+      final data = jsonEncode({'type': 'ip_update', 'ip': settings.ipAddress});
 
       final socket = await RawDatagramSocket.bind(InternetAddress.anyIPv4, 0);
       final targetIp = InternetAddress(settings.ipAddress);
@@ -51,6 +48,8 @@ class _SettingsPageState extends State<SettingsPage> {
       socket.close();
 
       print('📤 IP gesendet: $data');
+
+      await settings.saveLastSuccessfulIp(settings.ipAddress);
 
       if (context.mounted) Navigator.pop(context, settings.ipAddress);
     } catch (e) {
@@ -64,10 +63,7 @@ class _SettingsPageState extends State<SettingsPage> {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: const Text(
-          'Settings',
-          style: AppTextStyles.heading,
-        ),
+        title: const Text('Settings', style: AppTextStyles.heading),
         backgroundColor: AppColors.cardBackground,
         actions: [
           IconButton(
@@ -88,7 +84,8 @@ class _SettingsPageState extends State<SettingsPage> {
           decoration: AppInputDecorations.textField('Server IP-Adresse'),
           style: AppTextStyles.body,
           keyboardType: TextInputType.number,
-          onChanged: (val) => context.read<SettingsProvider>().setIpAddress(val),
+          onChanged:
+              (val) => context.read<SettingsProvider>().setIpAddress(val),
         ),
       ),
     );

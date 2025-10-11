@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SettingsProvider extends ChangeNotifier {
   bool _isDarkMode = false;
@@ -15,14 +16,34 @@ class SettingsProvider extends ChangeNotifier {
   String get smoothFactor => _smoothFactor;
   String get moveThrottle => _moveThrottle;
 
+  SettingsProvider() {
+    _loadSavedIp();
+  }
+
   void setDarkMode(bool value) {
     _isDarkMode = value;
     notifyListeners();
   }
 
-  void setIpAddress(String ip) {
+  void setIpAddress(String ip) async {
     _ipAddress = ip;
     notifyListeners();
+  }
+
+  Future<void> saveLastSuccessfulIp(String ip) async {
+    _ipAddress = ip;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('last_ip', ip);
+    notifyListeners();
+  }
+
+  Future<void> _loadSavedIp() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedIp = prefs.getString('last_ip');
+    if (savedIp != null) {
+      _ipAddress = savedIp;
+      notifyListeners();
+    }
   }
 
   void setMaxSpeed(String val) {

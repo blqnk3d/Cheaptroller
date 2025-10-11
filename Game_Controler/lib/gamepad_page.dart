@@ -18,6 +18,7 @@ class _GamepadPageState extends State<GamepadPage> {
   RawDatagramSocket? socket;
   late InternetAddress serverAddress;
   static const int port = 8080;
+  static const double deadzone = 0.01; // ignore tiny movements
 
   Map<String, Offset> joystickPositions = {
     "left": const Offset(0, 0),
@@ -46,7 +47,8 @@ class _GamepadPageState extends State<GamepadPage> {
         final pos = joystickPositions[side]!;
         final last = lastSentTime[side]!;
         final now = DateTime.now();
-        if ((pos.dx != 0 || pos.dy != 0) || now.difference(last).inMilliseconds > 500) {
+        if ((pos.dx != 0 || pos.dy != 0) ||
+            now.difference(last).inMilliseconds > 500) {
           sendMove(side, pos.dx, pos.dy);
           lastSentTime[side] = now;
         }
@@ -80,12 +82,7 @@ class _GamepadPageState extends State<GamepadPage> {
   }
 
   void sendMove(String side, double x, double y) {
-    sendUDP({
-      "type": "move",
-      "side": side,
-      "x": x,
-      "y": y,
-    });
+    sendUDP({"type": "move", "side": side, "x": x, "y": y});
   }
 
   void sendButton(String side, int index, bool pressed) {
@@ -100,9 +97,10 @@ class _GamepadPageState extends State<GamepadPage> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final joystickSize = constraints.maxHeight * 0.5;
-        final List<String> buttonLabels = side == 'left'
-            ? ['Left Click', 'Right Click', 'Middle Mouse']
-            : ['R1', 'R2', 'R3'];
+        final List<String> buttonLabels =
+            side == 'left'
+                ? ['Left Click', 'Right Click', 'Middle Mouse']
+                : ['R1', 'R2', 'R3'];
         bool hasMoved = false;
 
         return Center(
@@ -126,7 +124,10 @@ class _GamepadPageState extends State<GamepadPage> {
                             height: 70,
                             decoration: BoxDecoration(
                               color: Colors.transparent,
-                              border: Border.all(color: AppColors.textPrimary, width: 2),
+                              border: Border.all(
+                                color: AppColors.textPrimary,
+                                width: 2,
+                              ),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Icon(
@@ -137,10 +138,7 @@ class _GamepadPageState extends State<GamepadPage> {
                           ),
                         ),
                         const SizedBox(height: 6),
-                        Text(
-                          buttonLabels[i],
-                          style: AppTextStyles.body,
-                        ),
+                        Text(buttonLabels[i], style: AppTextStyles.body),
                       ],
                     ),
                   );
@@ -152,20 +150,64 @@ class _GamepadPageState extends State<GamepadPage> {
               SizedBox(
                 width: joystickSize,
                 height: joystickSize,
-                child: side == 'left'
-                    ? GestureDetector(
-                        onPanDown: (_) {
-                          hasMoved = false;
-                        },
-                        onPanEnd: (_) {
-                          if (!hasMoved) {
-                            sendButton("left", 0, true);
-                            Future.delayed(const Duration(milliseconds: 100), () {
-                              sendButton("left", 0, false);
-                            });
-                          }
-                        },
-                        child: Joystick(
+                child:
+                    side == 'left'
+                        ? GestureDetector(
+                          onPanDown: (_) {
+                            hasMoved = false;
+                          },
+                          onPanEnd: (_) {
+                            if (!hasMoved) {
+                              sendButton("left", 0, true);
+                              Future.delayed(
+                                const Duration(milliseconds: 100),
+                                () {
+                                  sendButton("left", 0, false);
+                                },
+                              );
+                            }
+                          },
+                          child: Joystick(
+                            mode: JoystickMode.all,
+                            stick: Container(
+                              width: 60,
+                              height: 60,
+                              decoration: BoxDecoration(
+                                color: AppColors.joyStick,
+                                shape: BoxShape.circle,
+                                boxShadow: const [
+                                  BoxShadow(
+                                    color: Colors.black26,
+                                    blurRadius: 4,
+                                    offset: Offset(2, 2),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            base: Container(
+                              width: joystickSize,
+                              height: joystickSize,
+                              decoration: BoxDecoration(
+                                color: AppColors.cardBackground,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            listener: (details) {
+                              double x =
+                                  (details.x.abs() < deadzone) ? 0 : details.x;
+                              double y =
+                                  (details.y.abs() < deadzone) ? 0 : details.y;
+
+                              joystickPositions[side] = Offset(x, y);
+                              lastSentTime[side] = DateTime.now();
+
+                              if (x != 0 || y != 0) {
+                                sendMove(side, x, y);
+                              }
+                            },
+                          ),
+                        )
+                        : Joystick(
                           mode: JoystickMode.all,
                           stick: Container(
                             width: 60,
@@ -191,46 +233,19 @@ class _GamepadPageState extends State<GamepadPage> {
                             ),
                           ),
                           listener: (details) {
-                            if (details.x.abs() > 0.2 || details.y.abs() > 0.2) {
-                              hasMoved = true;
-                            }
-                            joystickPositions[side] = Offset(details.x, details.y);
+                            double x =
+                                (details.x.abs() < deadzone) ? 0 : details.x;
+                            double y =
+                                (details.y.abs() < deadzone) ? 0 : details.y;
+
+                            joystickPositions[side] = Offset(x, y);
                             lastSentTime[side] = DateTime.now();
-                            sendMove(side, details.x, details.y);
+
+                            if (x != 0 || y != 0) {
+                              sendMove(side, x, y);
+                            }
                           },
                         ),
-                      )
-                    : Joystick(
-                        mode: JoystickMode.all,
-                        stick: Container(
-                          width: 60,
-                          height: 60,
-                          decoration: BoxDecoration(
-                            color: AppColors.joyStick,
-                            shape: BoxShape.circle,
-                            boxShadow: const [
-                              BoxShadow(
-                                color: Colors.black26,
-                                blurRadius: 4,
-                                offset: Offset(2, 2),
-                              ),
-                            ],
-                          ),
-                        ),
-                        base: Container(
-                          width: joystickSize,
-                          height: joystickSize,
-                          decoration: BoxDecoration(
-                            color: AppColors.cardBackground,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        listener: (details) {
-                          joystickPositions[side] = Offset(details.x, details.y);
-                          lastSentTime[side] = DateTime.now();
-                          sendMove(side, details.x, details.y);
-                        },
-                      ),
               ),
             ],
           ),
@@ -241,17 +256,18 @@ class _GamepadPageState extends State<GamepadPage> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        backgroundColor: AppColors.background,
-        body: SafeArea(
-          child: socket == null
+    backgroundColor: AppColors.background,
+    body: SafeArea(
+      child:
+          socket == null
               ? const Center(child: CircularProgressIndicator())
               : Row(
-                  children: [
-                    Expanded(child: buildJoystick("left")),
-                    SizedBox(width: 150),
-                    Expanded(child: buildJoystick("right")),
-                  ],
-                ),
-        ),
-      );
+                children: [
+                  Expanded(child: buildJoystick("left")),
+                  SizedBox(width: 150),
+                  Expanded(child: buildJoystick("right")),
+                ],
+              ),
+    ),
+  );
 }

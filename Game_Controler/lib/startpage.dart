@@ -62,7 +62,7 @@ class _StartPageState extends State<StartPage> {
                         AppColors.cardBackground, // button background
                     foregroundColor: AppColors.textPrimary, // text color
                     disabledBackgroundColor:
-                        Colors.grey[800], // optional for disabled state
+                        AppColors.button_disabled, // optional for disabled state
                     disabledForegroundColor: Colors.grey[500],
                     padding: const EdgeInsets.symmetric(
                       vertical: 16,
