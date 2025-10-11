@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 
 import 'startpage.dart';
 import 'gamepad_page.dart';
+import 'style.dart'; // <-- import your style.dart
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,11 +26,35 @@ class MyApp extends StatelessWidget {
       builder: (context, settings, _) {
         return MaterialApp(
           debugShowCheckedModeBanner: false,
-          theme: settings.isDarkMode ? ThemeData.dark() : ThemeData.light(),
+          theme: ThemeData(
+            brightness: settings.isDarkMode ? Brightness.dark : Brightness.light,
+            scaffoldBackgroundColor: AppColors.background,
+            appBarTheme: AppBarTheme(
+              backgroundColor: AppColors.cardBackground,
+              foregroundColor: AppColors.textPrimary,
+            ),
+            iconTheme: const IconThemeData(color: AppColors.icon),
+            textTheme: TextTheme(
+              bodyMedium: AppTextStyles.body,
+              bodySmall: AppTextStyles.label,
+              titleMedium: AppTextStyles.heading,
+            ),
+            inputDecorationTheme: InputDecorationTheme(
+              filled: true,
+              fillColor: AppColors.cardBackground,
+              labelStyle: AppTextStyles.label,
+              enabledBorder: OutlineInputBorder(
+                borderSide: BorderSide(color: AppColors.textSecondary),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderSide: BorderSide(color: AppColors.textPrimary),
+              ),
+            ),
+          ),
           initialRoute: StartPage.routeName,
           routes: {
             StartPage.routeName: (_) => const StartPage(),
-            SettingsPage.routeName: (_) =>  SettingsPage(),
+            SettingsPage.routeName: (_) => SettingsPage(),
             GamepadPage.routeName: (_) => const GamepadPage(),
           },
         );
