@@ -4,7 +4,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_joystick/flutter_joystick.dart';
-import 'style.dart'; // <-- import your style.dart
+import 'package:game_controler/settingsProvider.dart';
+import 'package:provider/provider.dart';
+import 'style.dart';
 
 class GamepadPage extends StatefulWidget {
   static const routeName = '/gamepad';
@@ -16,9 +18,11 @@ class GamepadPage extends StatefulWidget {
 
 class _GamepadPageState extends State<GamepadPage> {
   RawDatagramSocket? socket;
-  late InternetAddress serverAddress;
+  InternetAddress? serverAddress; // Make this nullable
+  bool _isSocketReady = false; // State to track if socket is ready
+
   static const int port = 8080;
-  static const double deadzone = 0.01; // ignore tiny movements
+  static const double deadzone = 0.01;
 
   Map<String, Offset> joystickPositions = {
     "left": const Offset(0, 0),
@@ -39,7 +43,6 @@ class _GamepadPageState extends State<GamepadPage> {
       DeviceOrientation.landscapeLeft,
       DeviceOrientation.landscapeRight,
     ]);
-
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
 
     idleTimer = Timer.periodic(const Duration(milliseconds: 200), (_) {
@@ -56,16 +59,39 @@ class _GamepadPageState extends State<GamepadPage> {
     });
   }
 
+  Future<void> _initSocket() async {
+    final settings = Provider.of<SettingsProvider>(context, listen: false);
+    final newIp = settings.ipAddress;
+
+    if (newIp == serverAddress?.address && socket != null) {
+      return;
+    }
+
+    setState(() {
+      _isSocketReady = false;
+    });
+
+    socket?.close();
+
+    try {
+      serverAddress = InternetAddress(newIp);
+      socket = await RawDatagramSocket.bind(InternetAddress.anyIPv4, 0);
+      setState(() {
+        _isSocketReady = true;
+      });
+      print("Socket bound successfully to IP: ${serverAddress?.address}");
+    } catch (e) {
+      print("Failed to bind socket: $e");
+    }
+  }
+
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final ip = ModalRoute.of(context)!.settings.arguments as String;
-    serverAddress = InternetAddress(ip);
-    RawDatagramSocket.bind(InternetAddress.anyIPv4, 0).then((s) {
-      socket = s;
-      setState(() {});
-    });
+    _initSocket();
   }
+
 
   @override
   void dispose() {
@@ -76,9 +102,15 @@ class _GamepadPageState extends State<GamepadPage> {
   }
 
   void sendUDP(Map<String, dynamic> data) {
-    if (socket == null) return;
+
+    print(serverAddress);
+
+    if (!_isSocketReady || socket == null || serverAddress == null) {
+      print("Socket not ready or address is null, cannot send data.");
+      return;
+    }
     final bytes = utf8.encode(jsonEncode(data));
-    socket!.send(bytes, serverAddress, port);
+    socket!.send(bytes, serverAddress!, port);
   }
 
   void sendMove(String side, double x, double y) {
@@ -93,6 +125,7 @@ class _GamepadPageState extends State<GamepadPage> {
     });
   }
 
+  // buildJoystick method remains the same
   Widget buildJoystick(String side) {
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -193,6 +226,7 @@ class _GamepadPageState extends State<GamepadPage> {
                               ),
                             ),
                             listener: (details) {
+                              hasMoved = true; // Set flag on move
                               double x =
                                   (details.x.abs() < deadzone) ? 0 : details.x;
                               double y =
@@ -258,16 +292,25 @@ class _GamepadPageState extends State<GamepadPage> {
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: AppColors.background,
     body: SafeArea(
-      child:
-          socket == null
-              ? const Center(child: CircularProgressIndicator())
-              : Row(
+      // Replace FutureBuilder with a simple conditional check
+      child: _isSocketReady
+          ? Row(
+              children: [
+                Expanded(child: buildJoystick("left")),
+                const SizedBox(width: 150),
+                Expanded(child: buildJoystick("right")),
+              ],
+            )
+          : const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Expanded(child: buildJoystick("left")),
-                  SizedBox(width: 150),
-                  Expanded(child: buildJoystick("right")),
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text("Connecting..."),
                 ],
               ),
+            ),
     ),
   );
 }

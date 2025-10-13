@@ -14,22 +14,24 @@ udpServer.on('message', (msg, rinfo) => {
     try {
         const d = JSON.parse(msg.toString());
         const t = d.type,
-            side = d.side;
+              side = d.side;
 
         if (t === 'move') {
             const x = Number(d.x || 0),
-                y = Number(d.y || 0);
+                  y = Number(d.y || 0);
             if (side === 'left' || side === 'right') updateLatestInput(side, x, y);
         } else if (t === 'button_down' || t === 'button_up') {
             handleButton(side, d.index, t === 'button_down');
         } else if (t === 'config' && d.constants) {
-            // Ignore config from UDP entirely
             console.log('⚡ Ignored config from UDP:', rinfo.address);
+        } else if (t === 'ip_update' && d.ip) {
+            console.log(`🌐 Received IP update from ${rinfo.address}: ${d.ip}`);
         }
     } catch (e) {
         console.error('❌ UDP parse error:', e);
     }
 });
+
 
 function startUdpServer(port = UDP_PORT) {
     udpServer.bind(port, '0.0.0.0', () => console.log(`🟢 UDP running on ${port}`));

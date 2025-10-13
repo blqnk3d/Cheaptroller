@@ -7,7 +7,7 @@ class AppColors {
 
   static const joyStick = Color.fromARGB(255, 88, 88, 88);
 
-  static const button_disabled = Color.fromARGB(255, 56, 56, 56);
+  static const buttonDisabled = Color.fromARGB(255, 56, 56, 56);
   
   static const textPrimary = Colors.white;
   static const textSecondary = Colors.grey;

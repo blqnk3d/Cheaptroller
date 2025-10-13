@@ -56,13 +56,12 @@ class _StartPageState extends State<StartPage> {
                 const SizedBox(height: 20),
                 ElevatedButton(
                   onPressed: ip.isEmpty ? null : () => _startGamepad(ip),
-                  child: const Text('Start Gamepad', style: AppTextStyles.body),
                   style: ElevatedButton.styleFrom(
                     backgroundColor:
                         AppColors.cardBackground, // button background
                     foregroundColor: AppColors.textPrimary, // text color
                     disabledBackgroundColor:
-                        AppColors.button_disabled, // optional for disabled state
+                        AppColors.buttonDisabled, // optional for disabled state
                     disabledForegroundColor: Colors.grey[500],
                     padding: const EdgeInsets.symmetric(
                       vertical: 16,
@@ -72,6 +71,7 @@ class _StartPageState extends State<StartPage> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
+                  child: const Text('Start Gamepad', style: AppTextStyles.body),
                 ),
 
                 const SizedBox(height: 10),

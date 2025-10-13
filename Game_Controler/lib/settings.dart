@@ -4,7 +4,7 @@ import 'package:game_controler/settingsProvider.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'package:provider/provider.dart';
-import 'style.dart'; // <-- import your style.dart
+import 'style.dart'; 
 
 class SettingsPage extends StatefulWidget {
   static const routeName = '/settings';
@@ -37,25 +37,25 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   void _sendIpToServer(BuildContext context) async {
-    final settings = context.read<SettingsProvider>();
+  final settings = context.read<SettingsProvider>();
+  try {
+    final data = jsonEncode({'type': 'ip_update', 'ip': settings.ipAddress});
+    final socket = await RawDatagramSocket.bind(InternetAddress.anyIPv4, 0);
+    socket.send(data.codeUnits, InternetAddress(settings.ipAddress), 8080);
+    socket.close();
 
-    try {
-      final data = jsonEncode({'type': 'ip_update', 'ip': settings.ipAddress});
+    await settings.saveLastSuccessfulIp(settings.ipAddress);
 
-      final socket = await RawDatagramSocket.bind(InternetAddress.anyIPv4, 0);
-      final targetIp = InternetAddress(settings.ipAddress);
-      socket.send(data.codeUnits, targetIp, 8080);
-      socket.close();
-
-      print('📤 IP gesendet: $data');
-
-      await settings.saveLastSuccessfulIp(settings.ipAddress);
-
-      if (context.mounted) Navigator.pop(context, settings.ipAddress);
-    } catch (e) {
-      print('⚠️ Fehler beim Senden der IP: $e');
-    }
+    if (!mounted) return;
+    Navigator.of(context).pushReplacementNamed('/');
+  } catch (e) {
+    print('Error sending IP: $e'); // <-- debug output
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Failed to save settings'))
+    );
   }
+}
+
 
   @override
   Widget build(BuildContext context) {
