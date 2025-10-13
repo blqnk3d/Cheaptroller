@@ -22,7 +22,7 @@ class _GamepadPageState extends State<GamepadPage> {
   bool _isSocketReady = false; // State to track if socket is ready
 
   static const int port = 8080;
-  static const double deadzone = 0.01;
+  static const double deadzone = 0.1;
 
   Map<String, Offset> joystickPositions = {
     "left": const Offset(0, 0),
@@ -44,7 +44,7 @@ class _GamepadPageState extends State<GamepadPage> {
       DeviceOrientation.landscapeRight,
     ]);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-
+    /*
     idleTimer = Timer.periodic(const Duration(milliseconds: 200), (_) {
       for (var side in ['left', 'right']) {
         final pos = joystickPositions[side]!;
@@ -56,7 +56,7 @@ class _GamepadPageState extends State<GamepadPage> {
           lastSentTime[side] = now;
         }
       }
-    });
+    });*/
   }
 
   Future<void> _initSocket() async {
@@ -85,13 +85,11 @@ class _GamepadPageState extends State<GamepadPage> {
     }
   }
 
-
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     _initSocket();
   }
-
 
   @override
   void dispose() {
@@ -103,8 +101,6 @@ class _GamepadPageState extends State<GamepadPage> {
 
   void sendUDP(Map<String, dynamic> data) {
 
-    print(serverAddress);
-
     if (!_isSocketReady || socket == null || serverAddress == null) {
       print("Socket not ready or address is null, cannot send data.");
       return;
@@ -114,6 +110,8 @@ class _GamepadPageState extends State<GamepadPage> {
   }
 
   void sendMove(String side, double x, double y) {
+    print(x);
+    print(y);
     sendUDP({"type": "move", "side": side, "x": x, "y": y});
   }
 
@@ -274,8 +272,10 @@ class _GamepadPageState extends State<GamepadPage> {
 
                             joystickPositions[side] = Offset(x, y);
                             lastSentTime[side] = DateTime.now();
+                            print(x);
+                            print(y);
 
-                            if (x != 0 || y != 0) {
+                            if (x.abs() > deadzone || y.abs() > deadzone) {
                               sendMove(side, x, y);
                             }
                           },
@@ -292,25 +292,25 @@ class _GamepadPageState extends State<GamepadPage> {
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: AppColors.background,
     body: SafeArea(
-      // Replace FutureBuilder with a simple conditional check
-      child: _isSocketReady
-          ? Row(
-              children: [
-                Expanded(child: buildJoystick("left")),
-                const SizedBox(width: 150),
-                Expanded(child: buildJoystick("right")),
-              ],
-            )
-          : const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+      child:
+          _isSocketReady
+              ? Row(
                 children: [
-                  CircularProgressIndicator(),
-                  SizedBox(height: 16),
-                  Text("Connecting..."),
+                  Expanded(child: buildJoystick("left")),
+                  const SizedBox(width: 150),
+                  Expanded(child: buildJoystick("right")),
                 ],
+              )
+              : const Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(height: 16),
+                    Text("Connecting..."),
+                  ],
+                ),
               ),
-            ),
     ),
   );
 }

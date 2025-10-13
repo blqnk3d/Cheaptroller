@@ -4,18 +4,17 @@ const path = require('path');
 
 const SETTINGS_FILE = path.join(__dirname, 'controller_config.json');
 
-// ---------- Configurable parameters ----------
 let dynamicConfig = {
-    MAX_SPEED: 80,
+    MAX_SPEED: 50,
     DEADZONE: 0.05,
     DEADZONE_EXIT: 0.035,
     SMOOTH_TIME: 0.06,
     TICK_RATE: 60,
     TURN_RATE_DEG_PER_SEC: 720,
-    SENSITIVITY_CURVE: 1.0
+    SENSITIVITY_CURVE: 0.1
 };
 
-// State for frontend config permission
+
 let ALLOW_FRONTEND_CONFIG = true;
 
 function loadConfig() {
