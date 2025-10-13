@@ -39,17 +39,18 @@ udpServer.on('message', (msg, rinfo) => {
     }
 
     const { type: t, side } = d;
-
     if (t === 'move' && (side === 'left' || side === 'right')) {
-        // Stick scaling: -1..1 -> -32768..32767
         const x = Math.round((d.x || 0) * 32767);
         const y = Math.round((d.y || 0) * 32767);
+
         try {
+            // Muss exakt "left" oder "right" sein!
             gamepad.moveStick(side, x, y);
         } catch (err) {
             console.error('❌ Error moving stick:', err);
         }
-    } else if (t === 'button_down' || t === 'button_up') {
+    }
+    else if (t === 'button_down' || t === 'button_up') {
         const pressed = t === 'button_down';
         const buttonStr = BUTTON_MAP[d.index];
         if (!buttonStr) {
