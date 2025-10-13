@@ -74,34 +74,42 @@ function updatePressedDirectionKeys(side, newKeys) {
 
 function applyMouseMoveByVector(nx, ny, dtSec) {
     const config = getDynamicConfig();
-    const mag = mag01(nx, ny);
-    if (mag < config.DEADZONE && mag < config.DEADZONE_EXIT) return;
 
-    // Apply sensitivity curve
-    const scaledMag = Math.pow(mag, config.SENSITIVITY_CURVE);
+    // --- Apply per-axis deadzone ---
+    const dx = Math.abs(nx) < config.DEADZONE ? 0 : nx;
+    const dy = Math.abs(ny) < config.DEADZONE ? 0 : ny;
 
-    // Calculate mouse speed based on max speed, scaled magnitude, and a constant factor
-    // The '30' is an arbitrary multiplier to make the mouse movement feel right
-    const speed = config.MAX_SPEED * 30 * scaledMag;
+    if (dx === 0 && dy === 0) return; // Nothing to move
 
-    const [dirX, dirY] = normalize(nx, ny);
+    // --- Linear movement with optional exponential acceleration ---
+    // accelerationFactor = 1 means fully linear (default)
+    const accelFactor = config.ACCELERATION_FACTOR || 1;
 
-    lastOutput.mousePosSub.x += dirX * speed * dtSec;
-    lastOutput.mousePosSub.y += dirY * speed * dtSec;
+    const speedX = Math.sign(dx) * Math.pow(Math.abs(dx), accelFactor) * config.MAX_SPEED;
+    const speedY = Math.sign(dy) * Math.pow(Math.abs(dy), accelFactor) * config.MAX_SPEED;
+
+    // --- Accumulate fractional movement for smooth sub-pixel handling ---
+    lastOutput.mousePosSub.x += speedX * dtSec;
+    lastOutput.mousePosSub.y += speedY * dtSec;
 
     const moveX = Math.trunc(lastOutput.mousePosSub.x);
     const moveY = Math.trunc(lastOutput.mousePosSub.y);
 
     if (moveX !== 0 || moveY !== 0) {
+        // --- Clamp to screen boundaries ---
         mousePos.x = clamp(mousePos.x + moveX, 0, screenSize.width - 1);
         mousePos.y = clamp(mousePos.y + moveY, 0, screenSize.height - 1);
+
+        // --- Move the mouse instantly ---
         robot.moveMouse(mousePos.x, mousePos.y);
 
-        // Subtract the integer movement to keep the fractional part for next tick
+        // --- Keep fractional remainder for next tick ---
         lastOutput.mousePosSub.x -= moveX;
         lastOutput.mousePosSub.y -= moveY;
     }
 }
+
+
 
 function getStatus() {
     return {

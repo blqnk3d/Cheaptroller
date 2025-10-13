@@ -81,6 +81,7 @@
 <div id="myip">Fetching IP...</div>
 
 <div class="container">
+    <!-- Config Panel -->
     <div class="panel">
         <h2>Config</h2>
         <form id="configForm">
@@ -89,19 +90,32 @@
                 Allow Frontend Config
             </label>
 
-            <label>MAX_SPEED: <span id="MAX_SPEED_val" class="slider-value">80</span></label>
-            <input name="MAX_SPEED" type="range" min="10" max="200" step="1">
+            <label>MAX_SPEED: <span id="MAX_SPEED_val" class="slider-value">50</span></label>
+            <input name="MAX_SPEED" type="range" min="10" max="1000" step="1">
 
             <label>DEADZONE: <span id="DEADZONE_val" class="slider-value">0.05</span></label>
             <input name="DEADZONE" type="range" min="0" max="0.3" step="0.005">
 
+            <label>DEADZONE_EXIT: <span id="DEADZONE_EXIT_val" class="slider-value">0.035</span></label>
+            <input name="DEADZONE_EXIT" type="range" min="0" max="0.2" step="0.005">
+
             <label>SMOOTH_TIME: <span id="SMOOTH_TIME_val" class="slider-value">0.06</span></label>
             <input name="SMOOTH_TIME" type="range" min="0" max="0.2" step="0.005">
+
+            <label>TICK_RATE: <span id="TICK_RATE_val" class="slider-value">60</span></label>
+            <input name="TICK_RATE" type="range" min="10" max="240" step="1">
+
+            <label>TURN_RATE_DEG_PER_SEC: <span id="TURN_RATE_DEG_PER_SEC_val" class="slider-value">720</span></label>
+            <input name="TURN_RATE_DEG_PER_SEC" type="range" min="90" max="2000" step="1">
+
+            <label>SENSITIVITY_CURVE: <span id="SENSITIVITY_CURVE_val" class="slider-value">1.5</span></label>
+            <input name="SENSITIVITY_CURVE" type="range" min="0.1" max="3.0" step="0.05">
 
             <button type="submit">Apply</button>
         </form>
     </div>
 
+    <!-- Status Panel -->
     <div class="panel">
         <h2>Status</h2>
         <div>
@@ -145,28 +159,28 @@ const keysContainer = document.getElementById('keysContainer');
 const frontendToggle = document.getElementById('frontendToggle');
 const myipEl = document.getElementById('myip');
 
-// Slider value spans
-const MAX_SPEED_val = document.getElementById('MAX_SPEED_val');
-const DEADZONE_val = document.getElementById('DEADZONE_val');
-const SMOOTH_TIME_val = document.getElementById('SMOOTH_TIME_val');
-const MAX_SPEED_input = form.MAX_SPEED;
-const DEADZONE_input = form.DEADZONE;
-const SMOOTH_TIME_input = form.SMOOTH_TIME;
+const sliders = [
+    "MAX_SPEED","DEADZONE","DEADZONE_EXIT","SMOOTH_TIME",
+    "TICK_RATE","TURN_RATE_DEG_PER_SEC","SENSITIVITY_CURVE"
+];
 
-// Update slider spans & gradient
+// Update slider value display and background
 function updateSlider(slider, span) {
     const val = parseFloat(slider.value);
     span.textContent = val.toFixed(slider.step < 1 ? 3 : 0);
     const pct = ((val - slider.min) / (slider.max - slider.min)) * 100;
     slider.style.background = `linear-gradient(to right, #0ff ${pct}%, #444 ${pct}%)`;
 }
-[MAX_SPEED_input, DEADZONE_input, SMOOTH_TIME_input].forEach((slider, i) => {
-    const span = [MAX_SPEED_val, DEADZONE_val, SMOOTH_TIME_val][i];
+
+// Initialize sliders
+sliders.forEach(name => {
+    const slider = form[name];
+    const span = document.getElementById(name + "_val");
     slider.addEventListener('input', () => updateSlider(slider, span));
     updateSlider(slider, span);
 });
 
-// Enable/disable sliders and apply button
+// Enable/disable sliders and button based on frontend toggle
 function updateFormState(enabled) {
     [...form.elements].forEach(el => {
         if (el.tagName !== 'INPUT' || el.type !== 'checkbox') el.disabled = !enabled;
@@ -179,6 +193,12 @@ fetch('/api/status')
     .then(data => {
         frontendToggle.checked = data.allowFrontendConfig;
         updateFormState(data.allowFrontendConfig);
+
+        // Set slider values to current config
+        sliders.forEach(name => {
+            if(form[name]) form[name].value = data.config[name];
+            updateSlider(form[name], document.getElementById(name + "_val"));
+        });
     });
 
 // Fetch server IP(s)
@@ -188,7 +208,7 @@ fetch('/api/myip')
         myipEl.textContent = `Connect your phone to: ${data.ips[0]}:${data.port}`;
     });
 
-// Handle toggle change
+// Handle frontend toggle
 frontendToggle.addEventListener('change', () => {
     const allow = frontendToggle.checked;
     fetch('/api/toggleFrontendConfig', {
@@ -212,12 +232,18 @@ socket.on('status', data => {
     });
 });
 
-// Apply config
+// Apply config from frontend
 form.addEventListener('submit', e => {
     e.preventDefault();
     const config = Object.fromEntries(new FormData(form));
     for (let k in config) config[k] = parseFloat(config[k]);
-    socket.emit('config', config);
+    fetch('/api/config', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify(config)
+    }).then(res => res.json()).then(resp => {
+        console.log('Config applied:', resp);
+    });
 });
 </script>
 </body>

@@ -22,7 +22,7 @@ class _GamepadPageState extends State<GamepadPage> {
   bool _isSocketReady = false; // State to track if socket is ready
 
   static const int port = 8080;
-  static const double deadzone = 0.1;
+  static const double deadzone = 0.01;
 
   Map<String, Offset> joystickPositions = {
     "left": const Offset(0, 0),
