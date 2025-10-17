@@ -108,7 +108,7 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: AppColors.cardBackground,
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: BorderRadius.circular(8),
           border: Border.all(color: AppColors.textPrimary, width: 1.5),
         ),
         child: Text(dir[0].toUpperCase(), style: AppTextStyles.body),
@@ -117,7 +117,7 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
   }
 
   Widget _buildDPad(double size) {
-    final btnSize = size * 0.28;
+    final btnSize = size * 0.32;
     return SizedBox(
       width: size,
       height: size,
@@ -146,13 +146,14 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
           shape: BoxShape.circle,
           border: Border.all(color: AppColors.textPrimary, width: 1.5),
         ),
-        child: Text(label, style: AppTextStyles.body),
+        child: Text(label,
+            style: AppTextStyles.body.copyWith(fontSize: size * 0.4)),
       ),
     );
   }
 
   Widget _buildFaceButtons(double size) {
-    final b = size * 0.25;
+    final b = size * 0.32; // bigger
     return SizedBox(
       width: size,
       height: size,
@@ -173,20 +174,20 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
       onTapDown: (_) => sendButton(side, index, true),
       onTapUp: (_) => sendButton(side, index, false),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 10),
+        padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 12),
         decoration: BoxDecoration(
           color: AppColors.cardBackground,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(10),
           border: Border.all(color: AppColors.textPrimary, width: 1.5),
         ),
-        child: Text(label, style: AppTextStyles.body.copyWith(fontSize: 12)),
+        child: Text(label, style: AppTextStyles.body.copyWith(fontSize: 13)),
       ),
     );
   }
 
-  Widget _buildTopBumpers() {
+  Widget _buildTopBumpers(double width) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8.0),
+      padding: EdgeInsets.symmetric(horizontal: width * 0.06, vertical: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -197,6 +198,17 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
     );
   }
 
+  Widget _centerButtons() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        _topButton('Select', 8, 'left'),
+        const SizedBox(width: 16),
+        _topButton('Start', 9, 'right'),
+      ],
+    );
+  }
+
   Widget buildJoystick(String side, double size) {
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -204,8 +216,8 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
         Joystick(
           mode: JoystickMode.all,
           stick: Container(
-            width: size * 0.25,
-            height: size * 0.25,
+            width: size * 0.28,
+            height: size * 0.28,
             decoration: BoxDecoration(
               color: AppColors.joyStick,
               shape: BoxShape.circle,
@@ -225,7 +237,7 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
             sendMove(side, x, y);
           },
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 6),
         Text(side == 'left' ? 'L3' : 'R3',
             style: AppTextStyles.body.copyWith(fontSize: 12)),
       ],
@@ -234,36 +246,51 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
 
   @override
   Widget build(BuildContext context) {
-    final height = MediaQuery.of(context).size.height;
+    final size = MediaQuery.of(context).size;
+    final height = size.height;
+    final width = size.width;
 
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
         child: _isSocketReady
             ? Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    _buildTopBumpers(),
+                    _buildTopBumpers(width),
                     Expanded(
-                      child: Row(
+                      child: Column(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
-                          Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
+                          _centerButtons(),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
-                              _buildDPad(height * 0.28),
-                              const SizedBox(height: 8),
-                              buildJoystick('left', height * 0.30),
-                            ],
-                          ),
-                          Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              buildJoystick('right', height * 0.30),
-                              const SizedBox(height: 8),
-                              _buildFaceButtons(height * 0.28),
+                              Padding(
+                                padding: EdgeInsets.only(left: width * 0.04),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    _buildDPad(height * 0.34),
+                                    const SizedBox(height: 10),
+                                    buildJoystick('left', height * 0.38),
+                                  ],
+                                ),
+                              ),
+                              Padding(
+                                padding: EdgeInsets.only(right: width * 0.04),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    buildJoystick('right', height * 0.38),
+                                    const SizedBox(height: 10),
+                                    _buildFaceButtons(height * 0.36),
+                                  ],
+                                ),
+                              ),
                             ],
                           ),
                         ],
