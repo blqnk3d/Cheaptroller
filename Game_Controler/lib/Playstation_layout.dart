@@ -102,6 +102,7 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
     return GestureDetector(
       onTapDown: (_) => sendButton('left', index, true),
       onTapUp: (_) => sendButton('left', index, false),
+      onTapCancel: () => sendButton("left", index, false),
       child: Container(
         width: btnSize,
         height: btnSize,
@@ -137,6 +138,7 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
     return GestureDetector(
       onTapDown: (_) => sendButton('right', index, true),
       onTapUp: (_) => sendButton('right', index, false),
+      onTapCancel: () => sendButton("right", index, false),
       child: Container(
         width: size,
         height: size,
@@ -175,6 +177,7 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
     return GestureDetector(
       onTapDown: (_) => sendButton(side, index, true),
       onTapUp: (_) => sendButton(side, index, false),
+      onTapCancel: () => sendButton(side, index, false),
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 12),
         decoration: BoxDecoration(
