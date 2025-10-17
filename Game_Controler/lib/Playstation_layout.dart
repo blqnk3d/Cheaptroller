@@ -84,7 +84,6 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
       "side": side,
       "index": index,
     });
-  
 
     // Update visual feedback
     final key = "${side}_$index";
@@ -232,32 +231,49 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
   }
 
   Widget buildJoystick(String side, double size) {
+    // Define which bumpers to trigger
+    final int topBumperIndex = side == 'left' ? 4 : 5; // L1 / R1
+    final int bottomBumperIndex = side == 'left' ? 6 : 7; // L2 / R2
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Joystick(
-          mode: JoystickMode.all,
-          stick: Container(
-            width: size * 0.28,
-            height: size * 0.28,
-            decoration: BoxDecoration(
-              color: AppColors.joyStick,
-              shape: BoxShape.circle,
-            ),
-          ),
-          base: Container(
-            width: size,
-            height: size,
-            decoration: BoxDecoration(
-              color: AppColors.cardBackground,
-              shape: BoxShape.circle,
-            ),
-          ),
-          listener: (details) {
-            double x = (details.x.abs() < deadzone) ? 0 : details.x;
-            double y = (details.y.abs() < deadzone) ? 0 : details.y;
-            sendMove(side, x, y);
+        GestureDetector(
+          onDoubleTap: () {
+            
+
+            // Trigger bottom bumper slightly after top bumper
+            Future.delayed(const Duration(milliseconds: 150), () {
+              sendButton(side, bottomBumperIndex, true);
+              Future.delayed(const Duration(milliseconds: 100), () {
+                sendButton(side, bottomBumperIndex, false);
+              });
+            });
           },
+          child: Joystick(
+            mode: JoystickMode.all,
+            stick: Container(
+              width: size * 0.28,
+              height: size * 0.28,
+              decoration: BoxDecoration(
+                color: AppColors.joyStick,
+                shape: BoxShape.circle,
+              ),
+            ),
+            base: Container(
+              width: size,
+              height: size,
+              decoration: BoxDecoration(
+                color: AppColors.cardBackground,
+                shape: BoxShape.circle,
+              ),
+            ),
+            listener: (details) {
+              double x = (details.x.abs() < deadzone) ? 0 : details.x;
+              double y = (details.y.abs() < deadzone) ? 0 : details.y;
+              sendMove(side, x, y);
+            },
+          ),
         ),
         const SizedBox(height: 6),
         Text(
