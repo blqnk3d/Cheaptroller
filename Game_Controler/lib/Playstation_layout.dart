@@ -153,7 +153,7 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
   }
 
   Widget _buildFaceButtons(double size) {
-    final b = size * 0.32; // bigger
+    final b = size * 0.32;
     return SizedBox(
       width: size,
       height: size,
@@ -260,36 +260,45 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     _buildTopBumpers(width),
+
+                    /// MAIN CONTROLS
                     Expanded(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
-                          _centerButtons(),
+                          // 🔼 Top section (DPad + FaceButtons)
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               Padding(
                                 padding: EdgeInsets.only(left: width * 0.04),
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    _buildDPad(height * 0.34),
-                                    const SizedBox(height: 10),
-                                    buildJoystick('left', height * 0.38),
-                                  ],
-                                ),
+                                child: _buildDPad(height * 0.34),
                               ),
                               Padding(
                                 padding: EdgeInsets.only(right: width * 0.04),
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    buildJoystick('right', height * 0.38),
-                                    const SizedBox(height: 10),
-                                    _buildFaceButtons(height * 0.36),
-                                  ],
-                                ),
+                                child: _buildFaceButtons(height * 0.36),
+                              ),
+                            ],
+                          ),
+
+                          // 🔽 Bottom section (Joysticks + Select/Start)
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Padding(
+                                padding: EdgeInsets.only(left: width * 0.08),
+                                child: buildJoystick('left', height * 0.38),
+                              ),
+                              Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  _centerButtons(),
+                                ],
+                              ),
+                              Padding(
+                                padding: EdgeInsets.only(right: width * 0.08),
+                                child: buildJoystick('right', height * 0.38),
                               ),
                             ],
                           ),
