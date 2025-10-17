@@ -146,8 +146,10 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
           shape: BoxShape.circle,
           border: Border.all(color: AppColors.textPrimary, width: 1.5),
         ),
-        child: Text(label,
-            style: AppTextStyles.body.copyWith(fontSize: size * 0.4)),
+        child: Text(
+          label,
+          style: AppTextStyles.body.copyWith(fontSize: size * 0.4),
+        ),
       ),
     );
   }
@@ -190,10 +192,7 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
       padding: EdgeInsets.symmetric(horizontal: width * 0.06, vertical: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          _topButton('L1', 4, 'left'),
-          _topButton('R1', 5, 'right'),
-        ],
+        children: [_topButton('L1', 4, 'left'), _topButton('R1', 5, 'right')],
       ),
     );
   }
@@ -238,8 +237,10 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
           },
         ),
         const SizedBox(height: 6),
-        Text(side == 'left' ? 'L3' : 'R3',
-            style: AppTextStyles.body.copyWith(fontSize: 12)),
+        Text(
+          side == 'left' ? 'L3' : 'R3',
+          style: AppTextStyles.body.copyWith(fontSize: 12),
+        ),
       ],
     );
   }
@@ -253,71 +254,73 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: _isSocketReady
-            ? Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    _buildTopBumpers(width),
+        child:
+            _isSocketReady
+                ? Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      _buildTopBumpers(width),
 
-                    /// MAIN CONTROLS
-                    Expanded(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          // 🔼 Top section (DPad + FaceButtons)
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Padding(
-                                padding: EdgeInsets.only(left: width * 0.04),
-                                child: _buildDPad(height * 0.34),
-                              ),
-                              Padding(
-                                padding: EdgeInsets.only(right: width * 0.04),
-                                child: _buildFaceButtons(height * 0.36),
-                              ),
-                            ],
-                          ),
+                      /// MAIN CONTROLS
+                      Expanded(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            // 🔼 Top section (DPad + FaceButtons)
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Padding(
+                                  padding: EdgeInsets.only(left: width * 0.04),
+                                  child: _buildDPad(height * 0.34),
+                                ),
+                                Padding(
+                                  padding: EdgeInsets.only(right: width * 0.04),
+                                  child: _buildFaceButtons(height * 0.36),
+                                ),
+                              ],
+                            ),
 
-                          // 🔽 Bottom section (Joysticks + Select/Start)
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Padding(
-                                padding: EdgeInsets.only(left: width * 0.08),
-                                child: buildJoystick('left', height * 0.38),
-                              ),
-                              Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  _centerButtons(),
-                                ],
-                              ),
-                              Padding(
-                                padding: EdgeInsets.only(right: width * 0.08),
-                                child: buildJoystick('right', height * 0.38),
-                              ),
-                            ],
-                          ),
-                        ],
+                            // 🔽 Bottom section (Joysticks + Select/Start)
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Padding(
+                                  padding: EdgeInsets.only(left: width * 0.13),
+                                  child: buildJoystick('left', height * 0.38),
+                                ),
+                                Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [_centerButtons()],
+                                ),
+                                Padding(
+                                  padding: EdgeInsets.only(right: width * 0.13),
+                                  child: buildJoystick('right', height * 0.38),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
+                )
+                : const Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      CircularProgressIndicator(),
+                      SizedBox(height: 12),
+                      Text("Connecting..."),
+                    ],
+                  ),
                 ),
-              )
-            : const Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    CircularProgressIndicator(),
-                    SizedBox(height: 12),
-                    Text("Connecting..."),
-                  ],
-                ),
-              ),
       ),
     );
   }
