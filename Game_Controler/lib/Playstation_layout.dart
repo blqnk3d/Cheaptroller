@@ -84,6 +84,7 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
       "side": side,
       "index": index,
     });
+  
 
     // Update visual feedback
     final key = "${side}_$index";
@@ -199,7 +200,7 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
         children: [
           Positioned(top: 0, child: _faceButton('△', 3, b)),
           Positioned(right: 0, child: _faceButton('◯', 1, b)),
-          Positioned(left: 0, child: _faceButton('▢', 2, b)),
+          Positioned(left: 0, child: _faceButton('□', 2, b)),
           Positioned(bottom: 0, child: _faceButton('✖', 0, b)),
         ],
       ),
