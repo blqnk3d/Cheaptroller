@@ -5,9 +5,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_joystick/flutter_joystick.dart';
-import 'package:game_controler/settingsProvider.dart';
+import 'package:game_controler/Settings/settingsProvider.dart';
 import 'package:provider/provider.dart';
-import 'style.dart';
+import '../style.dart';
 
 class Xbox_Controller extends StatefulWidget {
   static const routeName = '/xbox_controller';

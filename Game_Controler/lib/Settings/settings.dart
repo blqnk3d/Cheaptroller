@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:game_controler/settingsProvider.dart';
+import 'package:game_controler/Settings/settingsProvider.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'package:provider/provider.dart';
-import 'style.dart'; 
+import '../style.dart'; 
 
 class SettingsPage extends StatefulWidget {
   static const routeName = '/settings';
