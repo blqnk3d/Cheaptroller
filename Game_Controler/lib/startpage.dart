@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:game_controler/Playstation_layout.dart';
+import 'package:game_controler/Playstation_Controller.dart.dart';
 import 'package:game_controler/settings.dart';
 import 'package:game_controler/style.dart';
 import 'package:provider/provider.dart';
@@ -37,6 +37,10 @@ class _StartPageState extends State<StartPage> {
 
   void _playstation_controller(String ip) {
     Navigator.pushNamed(context, Playstation_Controller.routeName, arguments: ip);
+  }
+
+   void _xbox_controller(String ip) {
+    //Navigator.pushNamed(context, Playstation_Controller.routeName, arguments: ip);
   }
 
   @override
@@ -108,6 +112,25 @@ class _StartPageState extends State<StartPage> {
                     ),
                   ),
                   child: const Text('Start Playstation Controller', style: AppTextStyles.body),
+                ),
+                ElevatedButton(
+                  onPressed: ip.isEmpty ? null : () => _xbox_controller(ip),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor:
+                        AppColors.cardBackground, 
+                    foregroundColor: AppColors.textPrimary, 
+                    disabledBackgroundColor:
+                        AppColors.buttonDisabled, 
+                    disabledForegroundColor: Colors.grey[500],
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 16,
+                      horizontal: 24,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text('Start XBox Controller', style: AppTextStyles.body),
                 ),
               ],
             ),

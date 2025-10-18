@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:game_controler/Playstation_layout.dart';
+import 'package:game_controler/Playstation_Controller.dart.dart' ;
 import 'package:game_controler/settings.dart';
 import 'package:game_controler/settingsProvider.dart';
 import 'package:provider/provider.dart';

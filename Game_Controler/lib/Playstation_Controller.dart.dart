@@ -1,3 +1,4 @@
+// lib/Xbox_Controller.dart
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -24,7 +25,6 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
   static const int port = 8080;
   static const double deadzone = 0.01;
 
-  /// Track pressed buttons for visual feedback
   final Set<String> _pressedButtons = {};
 
   @override
@@ -85,7 +85,6 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
       "index": index,
     });
 
-    // Update visual feedback
     final key = "${side}_$index";
     setState(() {
       if (pressed) {
@@ -99,11 +98,20 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
   Widget _dpadButton(String dir, double btnSize) {
     int index;
     switch (dir) {
-      case 'up': index = 6; break;
-      case 'down': index = 7; break;
-      case 'left': index = 4; break;
-      case 'right': index = 5; break;
-      default: index = 0;
+      case 'up':
+        index = 6;
+        break;
+      case 'down':
+        index = 7;
+        break;
+      case 'left':
+        index = 4;
+        break;
+      case 'right':
+        index = 5;
+        break;
+      default:
+        index = 0;
     }
 
     final key = "left_$index";
@@ -118,16 +126,26 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
         height: btnSize,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: isPressed ? Colors.red : AppColors.cardBackground,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: AppColors.textPrimary, width: 1.5),
+          color: isPressed ? Colors.greenAccent.withOpacity(0.6) : AppColors.cardBackground,
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: AppColors.textPrimary, width: 1.3),
         ),
-        child: Text(dir[0].toUpperCase(), style: AppTextStyles.body),
+        child: Icon(
+          dir == 'up'
+              ? Icons.keyboard_arrow_up
+              : dir == 'down'
+                  ? Icons.keyboard_arrow_down
+                  : dir == 'left'
+                      ? Icons.keyboard_arrow_left
+                      : Icons.keyboard_arrow_right,
+          color: AppColors.textPrimary,
+          size: btnSize * 0.6,
+        ),
       ),
     );
   }
 
-  Widget _faceButton(String label, int index, double size) {
+  Widget _faceButton(String label, int index, double size, Color color) {
     final key = "right_$index";
     final isPressed = _pressedButtons.contains(key);
 
@@ -135,18 +153,23 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
       onTapDown: (_) => sendButton('right', index, true),
       onTapUp: (_) => sendButton('right', index, false),
       onTapCancel: () => sendButton("right", index, false),
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 120),
         width: size,
         height: size,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: isPressed ? Colors.red : AppColors.cardBackground,
+          color: isPressed ? color.withOpacity(0.7) : AppColors.cardBackground,
           shape: BoxShape.circle,
-          border: Border.all(color: AppColors.textPrimary, width: 1.5),
+          border: Border.all(color: color, width: 2),
         ),
         child: Text(
           label,
-          style: AppTextStyles.body.copyWith(fontSize: size * 0.4),
+          style: AppTextStyles.body.copyWith(
+            fontSize: size * 0.4,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
         ),
       ),
     );
@@ -163,7 +186,7 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 12),
         decoration: BoxDecoration(
-          color: isPressed ? Colors.red : AppColors.cardBackground,
+          color: isPressed ? Colors.greenAccent.withOpacity(0.5) : AppColors.cardBackground,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(color: AppColors.textPrimary, width: 1.5),
         ),
@@ -197,10 +220,10 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
       child: Stack(
         alignment: Alignment.center,
         children: [
-          Positioned(top: 0, child: _faceButton('△', 3, b)),
-          Positioned(right: 0, child: _faceButton('◯', 1, b)),
-          Positioned(left: 0, child: _faceButton('□', 2, b)),
-          Positioned(bottom: 0, child: _faceButton('✖', 0, b)),
+          Positioned(bottom: 0, child: _faceButton('A', 0, b, Colors.green)),
+          Positioned(right: 0, child: _faceButton('B', 1, b, Colors.red)),
+          Positioned(left: 0, child: _faceButton('X', 2, b, Colors.blue)),
+          Positioned(top: 0, child: _faceButton('Y', 3, b, Colors.yellow)),
         ],
       ),
     );
@@ -212,8 +235,8 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          _topButton('L1', 4, 'left'),
-          _topButton('R1', 5, 'right'),
+          _topButton('LB', 4, 'left'),
+          _topButton('RB', 5, 'right'),
         ],
       ),
     );
@@ -223,26 +246,37 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        _topButton('Select', 8, 'left'),
-        const SizedBox(width: 16),
-        _topButton('Start', 9, 'right'),
+        _topButton('View', 8, 'left'),
+        const SizedBox(width: 12),
+        Container(
+          width: 35,
+          height: 35,
+          decoration: BoxDecoration(
+            color: AppColors.cardBackground,
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.green, width: 2),
+          ),
+          child: Icon(Icons.home, color: Colors.green, size: 20),
+        ),
+        const SizedBox(width: 12),
+        _topButton('Menu', 9, 'right'),
       ],
     );
   }
 
   Widget buildJoystick(String side, double size) {
-    // Define which bumpers to trigger
-    final int topBumperIndex = side == 'left' ? 4 : 5; // L1 / R1
-    final int bottomBumperIndex = side == 'left' ? 6 : 7; // L2 / R2
+    final int topBumperIndex = side == 'left' ? 4 : 5;
+    final int bottomBumperIndex = side == 'left' ? 6 : 7;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         GestureDetector(
           onDoubleTap: () {
-            
-
-            // Trigger bottom bumper slightly after top bumper
+            sendButton(side, topBumperIndex, true);
+            Future.delayed(const Duration(milliseconds: 100), () {
+              sendButton(side, topBumperIndex, false);
+            });
             Future.delayed(const Duration(milliseconds: 150), () {
               sendButton(side, bottomBumperIndex, true);
               Future.delayed(const Duration(milliseconds: 100), () {
@@ -276,10 +310,8 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
           ),
         ),
         const SizedBox(height: 6),
-        Text(
-          side == 'left' ? 'L3' : 'R3',
-          style: AppTextStyles.body.copyWith(fontSize: 12),
-        ),
+        Text(side == 'left' ? 'L3' : 'R3',
+            style: AppTextStyles.body.copyWith(fontSize: 12)),
       ],
     );
   }
@@ -301,12 +333,11 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
                   children: [
                     _buildTopBumpers(width),
 
-                    /// MAIN CONTROLS
                     Expanded(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
-                          // 🔼 Top section (DPad + FaceButtons)
+                          // DPad + Face Buttons
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             crossAxisAlignment: CrossAxisAlignment.center,
@@ -322,7 +353,7 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
                             ],
                           ),
 
-                          // 🔽 Bottom section (Joysticks + Select/Start)
+                          // Joysticks + Center
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
