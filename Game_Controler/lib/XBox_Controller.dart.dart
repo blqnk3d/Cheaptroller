@@ -9,22 +9,21 @@ import 'package:game_controler/settingsProvider.dart';
 import 'package:provider/provider.dart';
 import 'style.dart';
 
-class Playstation_Controller extends StatefulWidget {
-  static const routeName = '/playstation_controller';
-  const Playstation_Controller({super.key});
+class Xbox_Controller extends StatefulWidget {
+  static const routeName = '/xbox_controller';
+  const Xbox_Controller({super.key});
 
   @override
-  State<Playstation_Controller> createState() => _Playstation_ControllerState();
+  State<Xbox_Controller> createState() => _Xbox_ControllerState();
 }
 
-class _Playstation_ControllerState extends State<Playstation_Controller> {
+class _Xbox_ControllerState extends State<Xbox_Controller> {
   RawDatagramSocket? socket;
   InternetAddress? serverAddress;
   bool _isSocketReady = false;
 
   static const int port = 8080;
   static const double deadzone = 0.01;
-
   final Set<String> _pressedButtons = {};
 
   @override
@@ -126,7 +125,9 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
         height: btnSize,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: isPressed ? Colors.greenAccent.withOpacity(0.6) : AppColors.cardBackground,
+          color: isPressed
+              ? Colors.greenAccent.withOpacity(0.6)
+              : AppColors.cardBackground,
           borderRadius: BorderRadius.circular(6),
           border: Border.all(color: AppColors.textPrimary, width: 1.3),
         ),
@@ -186,7 +187,9 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 12),
         decoration: BoxDecoration(
-          color: isPressed ? Colors.greenAccent.withOpacity(0.5) : AppColors.cardBackground,
+          color: isPressed
+              ? Colors.greenAccent.withOpacity(0.5)
+              : AppColors.cardBackground,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(color: AppColors.textPrimary, width: 1.5),
         ),
@@ -272,7 +275,6 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
       children: [
         GestureDetector(
           onDoubleTap: () {
-            
             Future.delayed(const Duration(milliseconds: 150), () {
               sendButton(side, bottomBumperIndex, true);
               Future.delayed(const Duration(milliseconds: 100), () {
@@ -333,37 +335,34 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
-                          // DPad + Face Buttons
+                          // Xbox asymmetrical layout
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            crossAxisAlignment: CrossAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Padding(
                                 padding: EdgeInsets.only(left: width * 0.04),
-                                child: _buildDPad(height * 0.34),
-                              ),
-                              Padding(
-                                padding: EdgeInsets.only(right: width * 0.04),
-                                child: _buildFaceButtons(height * 0.36),
-                              ),
-                            ],
-                          ),
-
-                          // Joysticks + Center
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Padding(
-                                padding: EdgeInsets.only(left: width * 0.13),
-                                child: buildJoystick('left', height * 0.38),
+                                child: Column(
+                                  children: [
+                                    buildJoystick('left', height * 0.28),
+                                    const SizedBox(height: 20),
+                                    _buildDPad(height * 0.26),
+                                  ],
+                                ),
                               ),
                               Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [_centerButtons()],
                               ),
                               Padding(
-                                padding: EdgeInsets.only(right: width * 0.13),
-                                child: buildJoystick('right', height * 0.38),
+                                padding: EdgeInsets.only(right: width * 0.04),
+                                child: Column(
+                                  children: [
+                                    _buildFaceButtons(height * 0.3),
+                                    const SizedBox(height: 24),
+                                    buildJoystick('right', height * 0.28),
+                                  ],
+                                ),
                               ),
                             ],
                           ),

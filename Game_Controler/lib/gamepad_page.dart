@@ -129,7 +129,6 @@ class _GamepadPageState extends State<GamepadPage> {
       final joystickSize = constraints.maxHeight * 0.5;
       final List<String> buttonLabels =
           side == 'left' ? ['Left Click', 'Right Click', 'Middle Mouse'] : ['R1', 'R2', 'R3'];
-      bool hasMoved = false;
 
       Widget joystickWidget = Joystick(
         mode: JoystickMode.all,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:game_controler/Playstation_Controller.dart.dart';
+import 'package:game_controler/XBox_Controller.dart.dart';
 import 'package:game_controler/settings.dart';
 import 'package:game_controler/style.dart';
 import 'package:provider/provider.dart';
@@ -40,7 +41,7 @@ class _StartPageState extends State<StartPage> {
   }
 
    void _xbox_controller(String ip) {
-    //Navigator.pushNamed(context, Playstation_Controller.routeName, arguments: ip);
+    Navigator.pushNamed(context, Xbox_Controller.routeName, arguments: ip);
   }
 
   @override
