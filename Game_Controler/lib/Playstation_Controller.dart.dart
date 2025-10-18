@@ -273,10 +273,7 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
       children: [
         GestureDetector(
           onDoubleTap: () {
-            sendButton(side, topBumperIndex, true);
-            Future.delayed(const Duration(milliseconds: 100), () {
-              sendButton(side, topBumperIndex, false);
-            });
+            
             Future.delayed(const Duration(milliseconds: 150), () {
               sendButton(side, bottomBumperIndex, true);
               Future.delayed(const Duration(milliseconds: 100), () {
