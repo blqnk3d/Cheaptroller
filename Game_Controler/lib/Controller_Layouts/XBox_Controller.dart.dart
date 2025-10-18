@@ -18,6 +18,9 @@ class Xbox_Controller extends StatefulWidget {
 }
 
 class _Xbox_ControllerState extends State<Xbox_Controller> {
+  // ---------- SCALING CONSTANT ----------
+  static const double scaleFactor = 1.10; // Change this to resize buttons/joysticks
+
   RawDatagramSocket? socket;
   InternetAddress? serverAddress;
   bool _isSocketReady = false;
@@ -121,15 +124,15 @@ class _Xbox_ControllerState extends State<Xbox_Controller> {
       onTapUp: (_) => sendButton('left', index, false),
       onTapCancel: () => sendButton("left", index, false),
       child: Container(
-        width: btnSize,
-        height: btnSize,
+        width: btnSize * scaleFactor,
+        height: btnSize * scaleFactor,
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: isPressed
               ? Colors.greenAccent.withOpacity(0.6)
               : AppColors.cardBackground,
-          borderRadius: BorderRadius.circular(6),
-          border: Border.all(color: AppColors.textPrimary, width: 1.3),
+          borderRadius: BorderRadius.circular(6 * scaleFactor),
+          border: Border.all(color: AppColors.textPrimary, width: 1.3 * scaleFactor),
         ),
         child: Icon(
           dir == 'up'
@@ -140,7 +143,7 @@ class _Xbox_ControllerState extends State<Xbox_Controller> {
                       ? Icons.keyboard_arrow_left
                       : Icons.keyboard_arrow_right,
           color: AppColors.textPrimary,
-          size: btnSize * 0.6,
+          size: btnSize * 0.6 * scaleFactor,
         ),
       ),
     );
@@ -156,18 +159,18 @@ class _Xbox_ControllerState extends State<Xbox_Controller> {
       onTapCancel: () => sendButton("right", index, false),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 120),
-        width: size,
-        height: size,
+        width: size * scaleFactor,
+        height: size * scaleFactor,
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: isPressed ? color.withOpacity(0.7) : AppColors.cardBackground,
           shape: BoxShape.circle,
-          border: Border.all(color: color, width: 2),
+          border: Border.all(color: color, width: 2 * scaleFactor),
         ),
         child: Text(
           label,
           style: AppTextStyles.body.copyWith(
-            fontSize: size * 0.4,
+            fontSize: size * 0.4 * scaleFactor,
             fontWeight: FontWeight.bold,
             color: color,
           ),
@@ -180,20 +183,28 @@ class _Xbox_ControllerState extends State<Xbox_Controller> {
     final key = "${side}_$index";
     final isPressed = _pressedButtons.contains(key);
 
+    // Keep View/Menu buttons unchanged
+    final bool isCenterButton = label == "View" || label == "Menu";
+    final double scale = isCenterButton ? 1.0 : scaleFactor;
+
     return GestureDetector(
       onTapDown: (_) => sendButton(side, index, true),
       onTapUp: (_) => sendButton(side, index, false),
       onTapCancel: () => sendButton(side, index, false),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 14),
+        padding: EdgeInsets.symmetric(
+            vertical: 6 * scale, horizontal: 14 * scale),
         decoration: BoxDecoration(
           color: isPressed
               ? Colors.greenAccent.withOpacity(0.5)
               : AppColors.cardBackground,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: AppColors.textPrimary, width: 1.5),
+          borderRadius: BorderRadius.circular(10 * scale),
+          border: Border.all(color: AppColors.textPrimary, width: 1.5 * scale),
         ),
-        child: Text(label, style: AppTextStyles.body.copyWith(fontSize: 14)),
+        child: Text(label,
+            style: AppTextStyles.body.copyWith(
+              fontSize: 14 * scale,
+            )),
       ),
     );
   }
@@ -201,8 +212,8 @@ class _Xbox_ControllerState extends State<Xbox_Controller> {
   Widget _buildDPad(double size) {
     final btnSize = size * 0.34;
     return SizedBox(
-      width: size,
-      height: size,
+      width: size * scaleFactor,
+      height: size * scaleFactor,
       child: Stack(
         alignment: Alignment.center,
         children: [
@@ -218,8 +229,8 @@ class _Xbox_ControllerState extends State<Xbox_Controller> {
   Widget _buildFaceButtons(double size) {
     final b = size * 0.34;
     return SizedBox(
-      width: size,
-      height: size,
+      width: size * scaleFactor,
+      height: size * scaleFactor,
       child: Stack(
         alignment: Alignment.center,
         children: [
@@ -285,16 +296,16 @@ class _Xbox_ControllerState extends State<Xbox_Controller> {
           child: Joystick(
             mode: JoystickMode.all,
             stick: Container(
-              width: size * 0.32,
-              height: size * 0.32,
+              width: size * 0.32 * scaleFactor,
+              height: size * 0.32 * scaleFactor,
               decoration: BoxDecoration(
                 color: AppColors.joyStick,
                 shape: BoxShape.circle,
               ),
             ),
             base: Container(
-              width: size * 1.05,
-              height: size * 1.05,
+              width: size * 1.05 * scaleFactor,
+              height: size * 1.05 * scaleFactor,
               decoration: BoxDecoration(
                 color: AppColors.cardBackground,
                 shape: BoxShape.circle,
@@ -307,9 +318,7 @@ class _Xbox_ControllerState extends State<Xbox_Controller> {
             },
           ),
         ),
-        const SizedBox(height: 6),
-        Text(side == 'left' ? 'L3' : 'R3',
-            style: AppTextStyles.body.copyWith(fontSize: 12)),
+        
       ],
     );
   }
@@ -342,19 +351,16 @@ class _Xbox_ControllerState extends State<Xbox_Controller> {
                                 children: [
                                   buildJoystick('left', height * 0.32),
                                   const SizedBox(height: 25),
-                                  // Move D-pad more toward center
                                   Padding(
                                     padding: EdgeInsets.only(left: width * 0.15),
                                     child: _buildDPad(height * 0.3),
                                   ),
                                 ],
                               ),
-
                               Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [_centerButtons()],
                               ),
-
                               Column(
                                 children: [
                                   _buildFaceButtons(height * 0.34),
