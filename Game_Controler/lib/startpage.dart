@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:game_controler/Playstation_Controller.dart.dart';
+import 'package:game_controler/XBox_Controller.dart.dart';
 import 'package:game_controler/settings.dart';
 import 'package:game_controler/style.dart';
 import 'package:provider/provider.dart';
@@ -34,6 +36,14 @@ class _StartPageState extends State<StartPage> {
     Navigator.pushNamed(context, GamepadPage.routeName, arguments: ip);
   }
 
+  void _playstation_controller(String ip) {
+    Navigator.pushNamed(context, Playstation_Controller.routeName, arguments: ip);
+  }
+
+   void _xbox_controller(String ip) {
+    Navigator.pushNamed(context, Xbox_Controller.routeName, arguments: ip);
+  }
+
   @override
   Widget build(BuildContext context) {
     final settings = context.watch<SettingsProvider>();
@@ -54,14 +64,15 @@ class _StartPageState extends State<StartPage> {
                   style: const TextStyle(color: Colors.white, fontSize: 18),
                 ),
                 const SizedBox(height: 20),
+                
                 ElevatedButton(
-                  onPressed: ip.isEmpty ? null : () => _startGamepad(ip),
+                  onPressed: ip.isEmpty ? null : () => _playstation_controller(ip),
                   style: ElevatedButton.styleFrom(
                     backgroundColor:
-                        AppColors.cardBackground, // button background
-                    foregroundColor: AppColors.textPrimary, // text color
+                        AppColors.cardBackground, 
+                    foregroundColor: AppColors.textPrimary, 
                     disabledBackgroundColor:
-                        AppColors.buttonDisabled, // optional for disabled state
+                        AppColors.buttonDisabled, 
                     disabledForegroundColor: Colors.grey[500],
                     padding: const EdgeInsets.symmetric(
                       vertical: 16,
@@ -71,7 +82,28 @@ class _StartPageState extends State<StartPage> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Text('Start Gamepad', style: AppTextStyles.body),
+                  child: const Text('Start Playstation Controller', style: AppTextStyles.body),
+                ),
+                const SizedBox(height: 10),
+
+                ElevatedButton(
+                  onPressed: ip.isEmpty ? null : () => _xbox_controller(ip),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor:
+                        AppColors.cardBackground, 
+                    foregroundColor: AppColors.textPrimary, 
+                    disabledBackgroundColor:
+                        AppColors.buttonDisabled, 
+                    disabledForegroundColor: Colors.grey[500],
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 16,
+                      horizontal: 24,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text('Start XBox Controller', style: AppTextStyles.body),
                 ),
 
                 const SizedBox(height: 10),
@@ -84,6 +116,8 @@ class _StartPageState extends State<StartPage> {
                     style: TextStyle(color: Colors.white70),
                   ),
                 ),
+
+                
               ],
             ),
           ),

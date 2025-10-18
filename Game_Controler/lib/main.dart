@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:game_controler/Playstation_Controller.dart.dart' ;
+import 'package:game_controler/XBox_Controller.dart.dart';
 import 'package:game_controler/settings.dart';
 import 'package:game_controler/settingsProvider.dart';
 import 'package:provider/provider.dart';
 
 import 'startpage.dart';
 import 'gamepad_page.dart';
-import 'style.dart'; // <-- import your style.dart
+import 'style.dart'; 
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -56,6 +58,8 @@ class MyApp extends StatelessWidget {
             StartPage.routeName: (_) => const StartPage(),
             SettingsPage.routeName: (_) => SettingsPage(),
             GamepadPage.routeName: (_) => const GamepadPage(),
+            Playstation_Controller.routeName: (_) => const Playstation_Controller(),
+            Xbox_Controller.routeName: (_) => const Xbox_Controller(),
           },
         );
       },
