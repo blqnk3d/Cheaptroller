@@ -64,37 +64,7 @@ class _StartPageState extends State<StartPage> {
                   style: const TextStyle(color: Colors.white, fontSize: 18),
                 ),
                 const SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: ip.isEmpty ? null : () => _startGamepad(ip),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor:
-                        AppColors.cardBackground, // button background
-                    foregroundColor: AppColors.textPrimary, // text color
-                    disabledBackgroundColor:
-                        AppColors.buttonDisabled, // optional for disabled state
-                    disabledForegroundColor: Colors.grey[500],
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 16,
-                      horizontal: 24,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: const Text('Start Gamepad', style: AppTextStyles.body),
-                ),
-
-                const SizedBox(height: 10),
-                TextButton(
-                  onPressed:
-                      () =>
-                          Navigator.pushNamed(context, SettingsPage.routeName),
-                  child: const Text(
-                    'Settings',
-                    style: TextStyle(color: Colors.white70),
-                  ),
-                ),
-
+                
                 ElevatedButton(
                   onPressed: ip.isEmpty ? null : () => _playstation_controller(ip),
                   style: ElevatedButton.styleFrom(
@@ -114,6 +84,8 @@ class _StartPageState extends State<StartPage> {
                   ),
                   child: const Text('Start Playstation Controller', style: AppTextStyles.body),
                 ),
+                const SizedBox(height: 10),
+
                 ElevatedButton(
                   onPressed: ip.isEmpty ? null : () => _xbox_controller(ip),
                   style: ElevatedButton.styleFrom(
@@ -133,6 +105,19 @@ class _StartPageState extends State<StartPage> {
                   ),
                   child: const Text('Start XBox Controller', style: AppTextStyles.body),
                 ),
+
+                const SizedBox(height: 10),
+                TextButton(
+                  onPressed:
+                      () =>
+                          Navigator.pushNamed(context, SettingsPage.routeName),
+                  child: const Text(
+                    'Settings',
+                    style: TextStyle(color: Colors.white70),
+                  ),
+                ),
+
+                
               ],
             ),
           ),
