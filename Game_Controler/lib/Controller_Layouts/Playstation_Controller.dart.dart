@@ -18,6 +18,9 @@ class Playstation_Controller extends StatefulWidget {
 }
 
 class _Playstation_ControllerState extends State<Playstation_Controller> {
+  // ---------- SCALING CONSTANT ----------
+  static const double scaleFactor = 1.10; // Change this to resize buttons/joysticks
+
   RawDatagramSocket? socket;
   InternetAddress? serverAddress;
   bool _isSocketReady = false;
@@ -122,13 +125,13 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
       onTapUp: (_) => sendButton('left', index, false),
       onTapCancel: () => sendButton("left", index, false),
       child: Container(
-        width: btnSize,
-        height: btnSize,
+        width: btnSize * scaleFactor,
+        height: btnSize * scaleFactor,
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: isPressed ? Colors.greenAccent.withOpacity(0.6) : AppColors.cardBackground,
-          borderRadius: BorderRadius.circular(6),
-          border: Border.all(color: AppColors.textPrimary, width: 1.3),
+          borderRadius: BorderRadius.circular(6 * scaleFactor),
+          border: Border.all(color: AppColors.textPrimary, width: 1.3 * scaleFactor),
         ),
         child: Icon(
           dir == 'up'
@@ -139,7 +142,7 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
                       ? Icons.keyboard_arrow_left
                       : Icons.keyboard_arrow_right,
           color: AppColors.textPrimary,
-          size: btnSize * 0.6,
+          size: btnSize * 0.6 * scaleFactor,
         ),
       ),
     );
@@ -155,18 +158,18 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
       onTapCancel: () => sendButton("right", index, false),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 120),
-        width: size,
-        height: size,
+        width: size * scaleFactor,
+        height: size * scaleFactor,
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: isPressed ? color.withOpacity(0.7) : AppColors.cardBackground,
           shape: BoxShape.circle,
-          border: Border.all(color: color, width: 2),
+          border: Border.all(color: color, width: 2 * scaleFactor),
         ),
         child: Text(
           label,
           style: AppTextStyles.body.copyWith(
-            fontSize: size * 0.4,
+            fontSize: size * 0.4 * scaleFactor,
             fontWeight: FontWeight.bold,
             color: color,
           ),
@@ -179,18 +182,21 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
     final key = "${side}_$index";
     final isPressed = _pressedButtons.contains(key);
 
+    final bool isCenterButton = label == "View" || label == "Menu";
+    final double scale = isCenterButton ? 1.0 : scaleFactor;
+
     return GestureDetector(
       onTapDown: (_) => sendButton(side, index, true),
       onTapUp: (_) => sendButton(side, index, false),
       onTapCancel: () => sendButton(side, index, false),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 12),
+        padding: EdgeInsets.symmetric(vertical: 5 * scale, horizontal: 12 * scale),
         decoration: BoxDecoration(
           color: isPressed ? Colors.greenAccent.withOpacity(0.5) : AppColors.cardBackground,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: AppColors.textPrimary, width: 1.5),
+          borderRadius: BorderRadius.circular(10 * scale),
+          border: Border.all(color: AppColors.textPrimary, width: 1.5 * scale),
         ),
-        child: Text(label, style: AppTextStyles.body.copyWith(fontSize: 13)),
+        child: Text(label, style: AppTextStyles.body.copyWith(fontSize: 13 * scale)),
       ),
     );
   }
@@ -198,8 +204,8 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
   Widget _buildDPad(double size) {
     final btnSize = size * 0.32;
     return SizedBox(
-      width: size,
-      height: size,
+      width: size * scaleFactor,
+      height: size * scaleFactor,
       child: Stack(
         alignment: Alignment.center,
         children: [
@@ -215,8 +221,8 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
   Widget _buildFaceButtons(double size) {
     final b = size * 0.32;
     return SizedBox(
-      width: size,
-      height: size,
+      width: size * scaleFactor,
+      height: size * scaleFactor,
       child: Stack(
         alignment: Alignment.center,
         children: [
@@ -231,7 +237,7 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
 
   Widget _buildTopBumpers(double width) {
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: width * 0.06, vertical: 4),
+      padding: EdgeInsets.symmetric(horizontal: width * 0, vertical: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -272,7 +278,6 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
       children: [
         GestureDetector(
           onDoubleTap: () {
-            
             Future.delayed(const Duration(milliseconds: 150), () {
               sendButton(side, bottomBumperIndex, true);
               Future.delayed(const Duration(milliseconds: 100), () {
@@ -283,16 +288,16 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
           child: Joystick(
             mode: JoystickMode.all,
             stick: Container(
-              width: size * 0.28,
-              height: size * 0.28,
+              width: size * 0.28 * scaleFactor,
+              height: size * 0.28 * scaleFactor,
               decoration: BoxDecoration(
                 color: AppColors.joyStick,
                 shape: BoxShape.circle,
               ),
             ),
             base: Container(
-              width: size,
-              height: size,
+              width: size * scaleFactor,
+              height: size * scaleFactor,
               decoration: BoxDecoration(
                 color: AppColors.cardBackground,
                 shape: BoxShape.circle,
@@ -305,9 +310,7 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
             },
           ),
         ),
-        const SizedBox(height: 6),
-        Text(side == 'left' ? 'L3' : 'R3',
-            style: AppTextStyles.body.copyWith(fontSize: 12)),
+        
       ],
     );
   }

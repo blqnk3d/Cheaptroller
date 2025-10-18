@@ -245,7 +245,7 @@ class _Xbox_ControllerState extends State<Xbox_Controller> {
 
   Widget _buildTopBumpers(double width) {
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: width * 0.06, vertical: 6),
+      padding: EdgeInsets.symmetric(horizontal: width * 0, vertical: 6),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
