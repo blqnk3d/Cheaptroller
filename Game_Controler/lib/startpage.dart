@@ -6,7 +6,6 @@ import 'package:game_controler/settings.dart';
 import 'package:game_controler/style.dart';
 import 'package:provider/provider.dart';
 import 'package:game_controler/settingsProvider.dart';
-import 'gamepad_page.dart';
 
 class StartPage extends StatefulWidget {
   static const routeName = '/';
@@ -30,10 +29,6 @@ class _StartPageState extends State<StartPage> {
   void dispose() {
     SystemChrome.setPreferredOrientations(DeviceOrientation.values);
     super.dispose();
-  }
-
-  void _startGamepad(String ip) {
-    Navigator.pushNamed(context, GamepadPage.routeName, arguments: ip);
   }
 
   void _playstation_controller(String ip) {
@@ -116,8 +111,6 @@ class _StartPageState extends State<StartPage> {
                     style: TextStyle(color: Colors.white70),
                   ),
                 ),
-
-                
               ],
             ),
           ),

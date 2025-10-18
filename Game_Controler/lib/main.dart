@@ -6,7 +6,6 @@ import 'package:game_controler/settingsProvider.dart';
 import 'package:provider/provider.dart';
 
 import 'startpage.dart';
-import 'gamepad_page.dart';
 import 'style.dart'; 
 
 void main() async {
@@ -57,7 +56,6 @@ class MyApp extends StatelessWidget {
           routes: {
             StartPage.routeName: (_) => const StartPage(),
             SettingsPage.routeName: (_) => SettingsPage(),
-            GamepadPage.routeName: (_) => const GamepadPage(),
             Playstation_Controller.routeName: (_) => const Playstation_Controller(),
             Xbox_Controller.routeName: (_) => const Xbox_Controller(),
           },
