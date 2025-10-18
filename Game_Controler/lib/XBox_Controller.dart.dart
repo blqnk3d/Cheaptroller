@@ -185,7 +185,7 @@ class _Xbox_ControllerState extends State<Xbox_Controller> {
       onTapUp: (_) => sendButton(side, index, false),
       onTapCancel: () => sendButton(side, index, false),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 12),
+        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 14),
         decoration: BoxDecoration(
           color: isPressed
               ? Colors.greenAccent.withOpacity(0.5)
@@ -193,13 +193,13 @@ class _Xbox_ControllerState extends State<Xbox_Controller> {
           borderRadius: BorderRadius.circular(10),
           border: Border.all(color: AppColors.textPrimary, width: 1.5),
         ),
-        child: Text(label, style: AppTextStyles.body.copyWith(fontSize: 13)),
+        child: Text(label, style: AppTextStyles.body.copyWith(fontSize: 14)),
       ),
     );
   }
 
   Widget _buildDPad(double size) {
-    final btnSize = size * 0.32;
+    final btnSize = size * 0.34;
     return SizedBox(
       width: size,
       height: size,
@@ -216,7 +216,7 @@ class _Xbox_ControllerState extends State<Xbox_Controller> {
   }
 
   Widget _buildFaceButtons(double size) {
-    final b = size * 0.32;
+    final b = size * 0.34;
     return SizedBox(
       width: size,
       height: size,
@@ -234,7 +234,7 @@ class _Xbox_ControllerState extends State<Xbox_Controller> {
 
   Widget _buildTopBumpers(double width) {
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: width * 0.06, vertical: 4),
+      padding: EdgeInsets.symmetric(horizontal: width * 0.06, vertical: 6),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -250,18 +250,18 @@ class _Xbox_ControllerState extends State<Xbox_Controller> {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         _topButton('View', 8, 'left'),
-        const SizedBox(width: 12),
+        const SizedBox(width: 14),
         Container(
-          width: 35,
-          height: 35,
+          width: 40,
+          height: 40,
           decoration: BoxDecoration(
             color: AppColors.cardBackground,
             shape: BoxShape.circle,
             border: Border.all(color: Colors.green, width: 2),
           ),
-          child: Icon(Icons.home, color: Colors.green, size: 20),
+          child: Icon(Icons.home, color: Colors.green, size: 22),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: 14),
         _topButton('Menu', 9, 'right'),
       ],
     );
@@ -285,16 +285,16 @@ class _Xbox_ControllerState extends State<Xbox_Controller> {
           child: Joystick(
             mode: JoystickMode.all,
             stick: Container(
-              width: size * 0.28,
-              height: size * 0.28,
+              width: size * 0.32,
+              height: size * 0.32,
               decoration: BoxDecoration(
                 color: AppColors.joyStick,
                 shape: BoxShape.circle,
               ),
             ),
             base: Container(
-              width: size,
-              height: size,
+              width: size * 1.05,
+              height: size * 1.05,
               decoration: BoxDecoration(
                 color: AppColors.cardBackground,
                 shape: BoxShape.circle,
@@ -325,44 +325,45 @@ class _Xbox_ControllerState extends State<Xbox_Controller> {
       body: SafeArea(
         child: _isSocketReady
             ? Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     _buildTopBumpers(width),
-
                     Expanded(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
-                          // Xbox asymmetrical layout
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Padding(
-                                padding: EdgeInsets.only(left: width * 0.04),
-                                child: Column(
-                                  children: [
-                                    buildJoystick('left', height * 0.28),
-                                    const SizedBox(height: 20),
-                                    _buildDPad(height * 0.26),
-                                  ],
-                                ),
+                              Column(
+                                children: [
+                                  buildJoystick('left', height * 0.32),
+                                  const SizedBox(height: 25),
+                                  // Move D-pad more toward center
+                                  Padding(
+                                    padding: EdgeInsets.only(left: width * 0.15),
+                                    child: _buildDPad(height * 0.3),
+                                  ),
+                                ],
                               ),
+
                               Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [_centerButtons()],
                               ),
-                              Padding(
-                                padding: EdgeInsets.only(right: width * 0.04),
-                                child: Column(
-                                  children: [
-                                    _buildFaceButtons(height * 0.3),
-                                    const SizedBox(height: 24),
-                                    buildJoystick('right', height * 0.28),
-                                  ],
-                                ),
+
+                              Column(
+                                children: [
+                                  _buildFaceButtons(height * 0.34),
+                                  const SizedBox(height: 28),
+                                  Padding(
+                                    padding: EdgeInsets.only(right: width * 0.15),
+                                    child: buildJoystick('right', height * 0.32),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
