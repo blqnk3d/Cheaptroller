@@ -5,7 +5,7 @@ import '../style.dart';
 class JoystickWidget extends StatelessWidget {
   final String side;
   final double size;
-  final double scaleFactor; // <-- neu
+  final double scaleFactor;
   final Function(double x, double y) onMove;
 
   const JoystickWidget({
@@ -13,7 +13,7 @@ class JoystickWidget extends StatelessWidget {
     required this.side,
     required this.size,
     required this.onMove,
-    this.scaleFactor = 1.0, // Standard 1.0
+    this.scaleFactor = 1.0,
   });
 
   @override

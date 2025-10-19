@@ -5,7 +5,7 @@ class DPad extends StatelessWidget {
   final Set<String> pressedButtons;
   final Function(int index, bool pressed) onPressed;
   final double size;
-  final double scaleFactor; // <-- neu
+  final double scaleFactor;
 
   const DPad({
     super.key,
@@ -18,14 +18,15 @@ class DPad extends StatelessWidget {
   Widget _dpadButton(String dir, int index) {
     final key = "left_$index";
     final isPressed = pressedButtons.contains(key);
+    final btnSize = size * 0.32 * scaleFactor;
 
     return GestureDetector(
       onTapDown: (_) => onPressed(index, true),
       onTapUp: (_) => onPressed(index, false),
       onTapCancel: () => onPressed(index, false),
       child: Container(
-        width: size * 0.32 * scaleFactor,
-        height: size * 0.32 * scaleFactor,
+        width: btnSize,
+        height: btnSize,
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: isPressed ? Colors.greenAccent.withOpacity(0.6) : AppColors.cardBackground,
@@ -41,7 +42,7 @@ class DPad extends StatelessWidget {
                       ? Icons.keyboard_arrow_left
                       : Icons.keyboard_arrow_right,
           color: AppColors.textPrimary,
-          size: size * 0.2 * scaleFactor,
+          size: btnSize * 0.6,
         ),
       ),
     );

@@ -4,7 +4,7 @@ import '../style.dart';
 class MiddleButtons extends StatelessWidget {
   final Set<String> pressedButtons;
   final Function(int index, bool pressed) onPressed;
-  final double scaleFactor; // <-- neu
+  final double scaleFactor;
 
   const MiddleButtons({
     super.key,
@@ -56,4 +56,3 @@ class MiddleButtons extends StatelessWidget {
     );
   }
 }
-

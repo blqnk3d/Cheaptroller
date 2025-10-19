@@ -27,7 +27,6 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
   bool _isSocketReady = false;
 
   static const int port = 8080;
-  static const double deadzone = 0.01;
 
   final Set<String> _pressedButtons = {};
 

@@ -5,7 +5,7 @@ class FaceButtons extends StatelessWidget {
   final Set<String> pressedButtons;
   final Function(int index, bool pressed) onPressed;
   final double size;
-  final double scaleFactor; // <-- neu
+  final double scaleFactor;
 
   const FaceButtons({
     super.key,
@@ -15,9 +15,10 @@ class FaceButtons extends StatelessWidget {
     this.scaleFactor = 1.0,
   });
 
-  Widget _faceButton(String label, int index, double btnSize, Color color) {
+  Widget _faceButton(String label, int index, Color color) {
     final key = "right_$index";
     final isPressed = pressedButtons.contains(key);
+    final btnSize = size * 0.34 * scaleFactor;
 
     return GestureDetector(
       onTapDown: (_) => onPressed(index, true),
@@ -47,17 +48,16 @@ class FaceButtons extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final b = size * 0.34; // individuelle Button-Größe
     return SizedBox(
       width: size * scaleFactor,
       height: size * scaleFactor,
       child: Stack(
         alignment: Alignment.center,
         children: [
-          Positioned(bottom: 0, child: _faceButton('A', 0, b, Colors.green)),
-          Positioned(right: 0, child: _faceButton('B', 1, b, Colors.red)),
-          Positioned(left: 0, child: _faceButton('X', 2, b, Colors.blue)),
-          Positioned(top: 0, child: _faceButton('Y', 3, b, Colors.yellow)),
+          Positioned(bottom: 0, child: _faceButton('A', 0, Colors.green)),
+          Positioned(right: 0, child: _faceButton('B', 1, Colors.red)),
+          Positioned(left: 0, child: _faceButton('X', 2, Colors.blue)),
+          Positioned(top: 0, child: _faceButton('Y', 3, Colors.yellow)),
         ],
       ),
     );
