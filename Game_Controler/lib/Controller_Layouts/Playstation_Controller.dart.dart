@@ -19,7 +19,8 @@ class Playstation_Controller extends StatefulWidget {
 
 class _Playstation_ControllerState extends State<Playstation_Controller> {
   // ---------- SCALING CONSTANT ----------
-  static const double scaleFactor = 1.10; // Change this to resize buttons/joysticks
+  static const double scaleFactor =
+      1.10; // Change this to resize buttons/joysticks
 
   RawDatagramSocket? socket;
   InternetAddress? serverAddress;
@@ -102,19 +103,19 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
     int index;
     switch (dir) {
       case 'up':
-        index = 6;
+        index = 10; // DPad Up
         break;
       case 'down':
-        index = 7;
+        index = 11; // DPad Down
         break;
       case 'left':
-        index = 4;
+        index = 12; // DPad Left
         break;
       case 'right':
-        index = 5;
+        index = 13; // DPad Right
         break;
       default:
-        index = 0;
+        index = 10;
     }
 
     final key = "left_$index";
@@ -129,18 +130,24 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
         height: btnSize * scaleFactor,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: isPressed ? Colors.greenAccent.withOpacity(0.6) : AppColors.cardBackground,
+          color:
+              isPressed
+                  ? Colors.greenAccent.withOpacity(0.6)
+                  : AppColors.cardBackground,
           borderRadius: BorderRadius.circular(6 * scaleFactor),
-          border: Border.all(color: AppColors.textPrimary, width: 1.3 * scaleFactor),
+          border: Border.all(
+            color: AppColors.textPrimary,
+            width: 1.3 * scaleFactor,
+          ),
         ),
         child: Icon(
           dir == 'up'
               ? Icons.keyboard_arrow_up
               : dir == 'down'
-                  ? Icons.keyboard_arrow_down
-                  : dir == 'left'
-                      ? Icons.keyboard_arrow_left
-                      : Icons.keyboard_arrow_right,
+              ? Icons.keyboard_arrow_down
+              : dir == 'left'
+              ? Icons.keyboard_arrow_left
+              : Icons.keyboard_arrow_right,
           color: AppColors.textPrimary,
           size: btnSize * 0.6 * scaleFactor,
         ),
@@ -190,13 +197,22 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
       onTapUp: (_) => sendButton(side, index, false),
       onTapCancel: () => sendButton(side, index, false),
       child: Container(
-        padding: EdgeInsets.symmetric(vertical: 5 * scale, horizontal: 12 * scale),
+        padding: EdgeInsets.symmetric(
+          vertical: 5 * scale,
+          horizontal: 12 * scale,
+        ),
         decoration: BoxDecoration(
-          color: isPressed ? Colors.greenAccent.withOpacity(0.5) : AppColors.cardBackground,
+          color:
+              isPressed
+                  ? Colors.greenAccent.withOpacity(0.5)
+                  : AppColors.cardBackground,
           borderRadius: BorderRadius.circular(10 * scale),
           border: Border.all(color: AppColors.textPrimary, width: 1.5 * scale),
         ),
-        child: Text(label, style: AppTextStyles.body.copyWith(fontSize: 13 * scale)),
+        child: Text(
+          label,
+          style: AppTextStyles.body.copyWith(fontSize: 13 * scale),
+        ),
       ),
     );
   }
@@ -240,10 +256,7 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
       padding: EdgeInsets.symmetric(horizontal: width * 0, vertical: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          _topButton('LB', 4, 'left'),
-          _topButton('RB', 5, 'right'),
-        ],
+        children: [_topButton('LB', 4, 'left'), _topButton('RB', 5, 'right')],
       ),
     );
   }
@@ -310,7 +323,6 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
             },
           ),
         ),
-        
       ],
     );
   }
@@ -324,68 +336,72 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: _isSocketReady
-            ? Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    _buildTopBumpers(width),
+        child:
+            _isSocketReady
+                ? Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      _buildTopBumpers(width),
 
-                    Expanded(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          // DPad + Face Buttons
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Padding(
-                                padding: EdgeInsets.only(left: width * 0.04),
-                                child: _buildDPad(height * 0.34),
-                              ),
-                              Padding(
-                                padding: EdgeInsets.only(right: width * 0.04),
-                                child: _buildFaceButtons(height * 0.36),
-                              ),
-                            ],
-                          ),
+                      Expanded(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            // DPad + Face Buttons
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Padding(
+                                  padding: EdgeInsets.only(left: width * 0.04),
+                                  child: _buildDPad(height * 0.34),
+                                ),
+                                Padding(
+                                  padding: EdgeInsets.only(right: width * 0.04),
+                                  child: _buildFaceButtons(height * 0.36),
+                                ),
+                              ],
+                            ),
 
-                          // Joysticks + Center
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Padding(
-                                padding: EdgeInsets.only(left: width * 0.13),
-                                child: buildJoystick('left', height * 0.38),
-                              ),
-                              Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [_centerButtons()],
-                              ),
-                              Padding(
-                                padding: EdgeInsets.only(right: width * 0.13),
-                                child: buildJoystick('right', height * 0.38),
-                              ),
-                            ],
-                          ),
-                        ],
+                            // Joysticks + Center
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Padding(
+                                  padding: EdgeInsets.only(left: width * 0.13),
+                                  child: buildJoystick('left', height * 0.38),
+                                ),
+                                Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [_centerButtons()],
+                                ),
+                                Padding(
+                                  padding: EdgeInsets.only(right: width * 0.13),
+                                  child: buildJoystick('right', height * 0.38),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
+                )
+                : const Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      CircularProgressIndicator(),
+                      SizedBox(height: 12),
+                      Text("Connecting..."),
+                    ],
+                  ),
                 ),
-              )
-            : const Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    CircularProgressIndicator(),
-                    SizedBox(height: 12),
-                    Text("Connecting..."),
-                  ],
-                ),
-              ),
       ),
     );
   }

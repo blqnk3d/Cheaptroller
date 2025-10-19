@@ -4,75 +4,89 @@
 #include <linux/uinput.h>
 #include <cstring>
 #include <string>
+#include <unordered_map>
 
 int fd = -1;
 
-void create(const Napi::CallbackInfo& info) {
+// ----------------------------------------------------
+// 🧩 CREATE DEVICE
+// ----------------------------------------------------
+void create(const Napi::CallbackInfo &info)
+{
     Napi::Env env = info.Env();
 
     fd = open("/dev/uinput", O_WRONLY | O_NONBLOCK);
-    if (fd < 0) {
-        // Throw exception if uinput device cannot be opened (often due to permissions)
-        Napi::TypeError::New(env, "Cannot open /dev/uinput. Check permissions (sudo or udev rule).").ThrowAsJavaScriptException();
+    if (fd < 0)
+    {
+        Napi::TypeError::New(env, "Cannot open /dev/uinput. Check permissions (sudo or udev rule).")
+            .ThrowAsJavaScriptException();
         return;
     }
 
-    // --- 1. Set Event Types ---
+    // --- 1. Event Types ---
     ioctl(fd, UI_SET_EVBIT, EV_KEY);
     ioctl(fd, UI_SET_EVBIT, EV_ABS);
 
-    // --- 2. Register Buttons (Keys) ---
+    // --- 2. Buttons ---
     ioctl(fd, UI_SET_KEYBIT, BTN_A);
     ioctl(fd, UI_SET_KEYBIT, BTN_B);
     ioctl(fd, UI_SET_KEYBIT, BTN_X);
     ioctl(fd, UI_SET_KEYBIT, BTN_Y);
-    ioctl(fd, UI_SET_KEYBIT, BTN_TL);      // LB (Left Bumper)
-    ioctl(fd, UI_SET_KEYBIT, BTN_TR);      // RB (Right Bumper)
-    ioctl(fd, UI_SET_KEYBIT, BTN_SELECT);  // Select/Back Button
-    ioctl(fd, UI_SET_KEYBIT, BTN_START);   // Start Button
-    ioctl(fd, UI_SET_KEYBIT, BTN_THUMBL);  // Left Stick Press (LStick)
-    ioctl(fd, UI_SET_KEYBIT, BTN_THUMBR);  // Right Stick Press (RStick)
+    ioctl(fd, UI_SET_KEYBIT, BTN_TL);
+    ioctl(fd, UI_SET_KEYBIT, BTN_TR);
+    ioctl(fd, UI_SET_KEYBIT, BTN_SELECT);
+    ioctl(fd, UI_SET_KEYBIT, BTN_START);
+    ioctl(fd, UI_SET_KEYBIT, BTN_THUMBL);
+    ioctl(fd, UI_SET_KEYBIT, BTN_THUMBR);
 
-    // --- 3. Register Axes (Sticks) ---
-    ioctl(fd, UI_SET_ABSBIT, ABS_X);   // Left Stick X
-    ioctl(fd, UI_SET_ABSBIT, ABS_Y);   // Left Stick Y
-    ioctl(fd, UI_SET_ABSBIT, ABS_RX);  // Right Stick X
-    ioctl(fd, UI_SET_ABSBIT, ABS_RY);  // Right Stick Y
+    // --- 3. D-Pad (Hat Switch via ABS_HAT0X / ABS_HAT0Y) ---
+    ioctl(fd, UI_SET_ABSBIT, ABS_HAT0X);
+    ioctl(fd, UI_SET_ABSBIT, ABS_HAT0Y);
 
-    // --- 4. Define Device and Axis Properties ---
+    // --- 4. Sticks ---
+    ioctl(fd, UI_SET_ABSBIT, ABS_X);
+    ioctl(fd, UI_SET_ABSBIT, ABS_Y);
+    ioctl(fd, UI_SET_ABSBIT, ABS_RX);
+    ioctl(fd, UI_SET_ABSBIT, ABS_RY);
+
+    // --- 5. Device Setup ---
     struct uinput_user_dev uidev;
     memset(&uidev, 0, sizeof(uidev));
     snprintf(uidev.name, UINPUT_MAX_NAME_SIZE, "NodeVirtualGamepad");
     uidev.id.bustype = BUS_USB;
-    uidev.id.vendor  = 0x1234;
+    uidev.id.vendor = 0x1234;
     uidev.id.product = 0x5678;
     uidev.id.version = 1;
 
-    // Define the range for all registered axes (-32767 to 32767 for full precision)
+    // --- Stick axis ranges ---
     uidev.absmin[ABS_X] = -32767;
     uidev.absmax[ABS_X] = 32767;
-    uidev.absflat[ABS_X] = 0; // Dead zone
-
     uidev.absmin[ABS_Y] = -32767;
     uidev.absmax[ABS_Y] = 32767;
-    uidev.absflat[ABS_Y] = 0;
-
     uidev.absmin[ABS_RX] = -32767;
     uidev.absmax[ABS_RX] = 32767;
-    uidev.absflat[ABS_RX] = 0;
-
     uidev.absmin[ABS_RY] = -32767;
     uidev.absmax[ABS_RY] = 32767;
-    uidev.absflat[ABS_RY] = 0;
 
-    // --- 5. Create Device ---
+    // --- D-Pad axis ranges (-1 = left/up, 0 = neutral, 1 = right/down) ---
+    uidev.absmin[ABS_HAT0X] = -1;
+    uidev.absmax[ABS_HAT0X] = 1;
+    uidev.absmin[ABS_HAT0Y] = -1;
+    uidev.absmax[ABS_HAT0Y] = 1;
+
+    // Create the device
     write(fd, &uidev, sizeof(uidev));
     ioctl(fd, UI_DEV_CREATE);
 }
 
-void moveStick(const Napi::CallbackInfo& info) {
+// ----------------------------------------------------
+// 🎮 MOVE STICK
+// ----------------------------------------------------
+void moveStick(const Napi::CallbackInfo &info)
+{
     Napi::Env env = info.Env();
-    if (fd < 0) return;
+    if (fd < 0)
+        return;
 
     std::string side = info[0].As<Napi::String>();
     int x = info[1].As<Napi::Number>().Int32Value();
@@ -81,96 +95,153 @@ void moveStick(const Napi::CallbackInfo& info) {
     struct input_event ie;
     memset(&ie, 0, sizeof(ie));
 
-    int x_code = -1;
-    int y_code = -1;
+    int x_code = -1, y_code = -1;
 
-    // 🚨 Explicitly check and assign axis codes, or throw an error 🚨
-    if (side == "left") {
+    if (side == "left")
+    {
         x_code = ABS_X;
         y_code = ABS_Y;
-    } else if (side == "right") {
+    }
+    else if (side == "right")
+    {
         x_code = ABS_RX;
         y_code = ABS_RY;
-    } else {
-        std::string error_msg = "Invalid stick side specified: " + side + ". Must be 'left' or 'right'.";
-        Napi::TypeError::New(env, error_msg).ThrowAsJavaScriptException();
+    }
+    else
+    {
+        std::string err = "Invalid stick side specified: " + side + ". Must be 'left' or 'right'.";
+        Napi::TypeError::New(env, err).ThrowAsJavaScriptException();
         return;
     }
 
-    // Send X-axis event
     ie.type = EV_ABS;
     ie.code = x_code;
     ie.value = x;
     write(fd, &ie, sizeof(ie));
 
-    // Send Y-axis event
     ie.code = y_code;
     ie.value = y;
     write(fd, &ie, sizeof(ie));
 
-    // Send sync event
+    // sync
     ie.type = EV_SYN;
     ie.code = SYN_REPORT;
     ie.value = 0;
     write(fd, &ie, sizeof(ie));
 }
 
-void pressButton(const Napi::CallbackInfo& info) {
+// ----------------------------------------------------
+// 🎯 PRESS BUTTON
+// ----------------------------------------------------
+void pressButton(const Napi::CallbackInfo &info)
+{
     Napi::Env env = info.Env();
-    if (fd < 0) return;
+    if (fd < 0)
+        return;
 
     std::string button = info[0].As<Napi::String>();
     bool pressed = info[1].As<Napi::Boolean>();
 
-    struct input_event ie;
-    memset(&ie, 0, sizeof(ie));
-    ie.type = EV_KEY;
+    static const std::unordered_map<std::string, int> buttonMap = {
+        {"A", BTN_A},
+        {"B", BTN_B},
+        {"X", BTN_X},
+        {"Y", BTN_Y},
+        {"LB", BTN_TL},
+        {"RB", BTN_TR},
+        {"Select", BTN_SELECT},
+        {"Start", BTN_START},
+        {"LStick", BTN_THUMBL},
+        {"RStick", BTN_THUMBR},
+        {"Up", BTN_DPAD_UP},
+        {"Down", BTN_DPAD_DOWN},
+        {"Left", BTN_DPAD_LEFT},
+        {"Right", BTN_DPAD_RIGHT}};
 
-    int button_code = -1;
-
-    // Map button string to uinput code
-    if (button == "A") button_code = BTN_A;
-    else if (button == "B") button_code = BTN_B;
-    else if (button == "X") button_code = BTN_X;
-    else if (button == "Y") button_code = BTN_Y;
-    else if (button == "LB") button_code = BTN_TL;
-    else if (button == "RB") button_code = BTN_TR;
-    else if (button == "Select") button_code = BTN_SELECT;
-    else if (button == "Start") button_code = BTN_START;
-    else if (button == "LStick") button_code = BTN_THUMBL;
-    else if (button == "RStick") button_code = BTN_THUMBR;
-
-    // Throw error if button is not recognized
-    if (button_code == -1) {
+    auto it = buttonMap.find(button);
+    if (it == buttonMap.end())
+    {
         std::string error_msg = "Button not found: " + button;
         Napi::TypeError::New(env, error_msg).ThrowAsJavaScriptException();
         return;
     }
 
-    ie.code = button_code;
+    struct input_event ie;
+    memset(&ie, 0, sizeof(ie));
+    ie.type = EV_KEY;
+    ie.code = it->second;
     ie.value = pressed ? 1 : 0;
     write(fd, &ie, sizeof(ie));
 
-    // Send sync event
+    // sync
     ie.type = EV_SYN;
     ie.code = SYN_REPORT;
     ie.value = 0;
     write(fd, &ie, sizeof(ie));
 }
 
+// ----------------------------------------------------
+// 🧭 MOVE DPAD (Hat switch, analog -1/0/1)
+// ----------------------------------------------------
+void moveDpad(const Napi::CallbackInfo &info)
+{
+    Napi::Env env = info.Env();
+    if (fd < 0)
+        return;
 
-void closeDevice(const Napi::CallbackInfo& info) {
-    if (fd >= 0) {
+    int x = info[0].As<Napi::Number>().Int32Value();
+    int y = info[1].As<Napi::Number>().Int32Value();
+
+    if (x < -1)
+        x = -1;
+    if (x > 1)
+        x = 1;
+    if (y < -1)
+        y = -1;
+    if (y > 1)
+        y = 1;
+
+    struct input_event ie;
+    memset(&ie, 0, sizeof(ie));
+
+    ie.type = EV_ABS;
+    ie.code = ABS_HAT0X;
+    ie.value = x;
+    write(fd, &ie, sizeof(ie));
+
+    ie.code = ABS_HAT0Y;
+    ie.value = y;
+    write(fd, &ie, sizeof(ie));
+
+    // sync
+    ie.type = EV_SYN;
+    ie.code = SYN_REPORT;
+    ie.value = 0;
+    write(fd, &ie, sizeof(ie));
+}
+
+// ----------------------------------------------------
+// ❌ CLOSE DEVICE
+// ----------------------------------------------------
+void closeDevice(const Napi::CallbackInfo &info)
+{
+    if (fd >= 0)
+    {
         ioctl(fd, UI_DEV_DESTROY);
         close(fd);
         fd = -1;
     }
 }
 
-Napi::Object Init(Napi::Env env, Napi::Object exports) {
+// ----------------------------------------------------
+// 🧩 EXPORTS
+// ----------------------------------------------------
+Napi::Object Init(Napi::Env env, Napi::Object exports)
+{
     exports.Set("create", Napi::Function::New(env, create));
     exports.Set("moveStick", Napi::Function::New(env, moveStick));
     exports.Set("pressButton", Napi::Function::New(env, pressButton));
+    exports.Set("moveDpad", Napi::Function::New(env, moveDpad));
     exports.Set("close", Napi::Function::New(env, closeDevice));
     return exports;
 }
