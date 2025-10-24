@@ -13,6 +13,7 @@ const {
 // UDP
 const UDP_PORT = 8080;
 let ioInstance = null;
+let shuttingDown = false;
 
 // ---------- Initialize Gamepad ----------
 try {
@@ -107,15 +108,13 @@ udpServer.on('message', (msg, rinfo) => {
         // Check if it's a D-Pad button
         const dpadDir = DPAD_MAP[idx];
         if (dpadDir) {
-            if (dpadDir === 'up') dpadY = pressed ? -1 : (dpadY === -1 ? 0 : dpadY);
-            if (dpadDir === 'down') dpadY = pressed ? 1 : (dpadY === 1 ? 0 : dpadY);
-            if (dpadDir === 'left') dpadX = pressed ? -1 : (dpadX === -1 ? 0 : dpadX);
-            if (dpadDir === 'right') dpadX = pressed ? 1 : (dpadX === 1 ? 0 : dpadX);
-
+            // Send D-Pad as discrete BTN_DPAD_* key events via the native module
+            // gamepad.cpp maps "Up"/"Down"/"Left"/"Right" -> BTN_DPAD_*
+            const capitalized = dpadDir[0].toUpperCase() + dpadDir.slice(1);
             try {
-                gamepad.moveDpad(dpadX, dpadY);
+                gamepad.pressButton(capitalized, pressed);
             } catch (err) {
-                console.error(`❌ Error moving dpad:`, err);
+                console.error(`❌ Error pressing dpad button ${capitalized}:`, err);
             }
             return;
         }
@@ -194,7 +193,14 @@ function initSocketIO(httpServer) {
 }
 
 function shutdown(signal) {
+    if (shuttingDown) {
+        console.log('🛑 Shutdown already in progress, forcing exit');
+        try { process.exit(1); } catch (e) {}
+        return;
+    }
+    shuttingDown = true;
     console.log('🛑 Shutting down', signal || '');
+
     try {
         udpServer.close();
     } catch (e) {}
@@ -213,7 +219,11 @@ function shutdown(signal) {
         console.error('Error closing gamepad:', e);
     }
 
-    // allow process to exit naturally
+    // If cleanup doesn't exit the process within a short time, force exit
+    setTimeout(() => {
+        console.log('🛑 Forcing process exit');
+        try { process.exit(0); } catch (e) {}
+    }, 1000);
 }
 
 process.on('SIGINT', () => shutdown('SIGINT'));
