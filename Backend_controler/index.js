@@ -1,6 +1,6 @@
 // index.js
 const { loadConfig, getDynamicConfig } = require('./config');
-const { startUdpServer, UDP_PORT } = require('./udpWebSocket');
+const { startUdpServer, UDP_PORT, stopUdpServer } = require('./udpWebSocket');
 const { startWebServer, WEB_PORT } = require('./webserver');
 const {
     getLatestInput, getSmoothedAxes, updateOutputAxes,
@@ -92,8 +92,29 @@ function tick() {
 
 // Start Servers
 startUdpServer(UDP_PORT);
-startWebServer(WEB_PORT);
+const { httpServer } = startWebServer(WEB_PORT);
 
-// Start Main Loop
+// Start Main Loop (store timer so we can stop it on shutdown)
+let tickTimer = null;
 lastTime = process.hrtime.bigint();
-setTimeout(tick, tickIntervalMs);
+tickTimer = setTimeout(function tickWrapper() {
+    tick();
+    tickTimer = setTimeout(tickWrapper, tickIntervalMs);
+}, tickIntervalMs);
+
+// Graceful shutdown
+const logger = require('./logger');
+function gracefulShutdown(signal) {
+    logger.info('SIG received, shutting down: %s', signal);
+    try { if (tickTimer) clearTimeout(tickTimer); } catch (e) {}
+    try { if (httpServer && typeof httpServer.close === 'function') httpServer.close(); } catch (e) {}
+    try { stopUdpServer(); } catch (e) {}
+    // allow process to exit
+    setTimeout(() => {
+        logger.info('Forcing process exit');
+        process.exit(0);
+    }, 1000);
+}
+
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));

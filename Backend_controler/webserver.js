@@ -52,7 +52,8 @@ function startWebServer(port = WEB_PORT) {
     });
 
     httpServer.listen(port, () => {
-        console.log(`🌐 Web server running on http://localhost:${port} | IPs: ${getAllLocalIPs().join(" | ")}`);
+        const logger = require('./logger');
+        logger.info('🌐 Web server running on http://localhost:%s | IPs: %s', port, getAllLocalIPs().join(' | '));
     });
 
     return { app, httpServer };

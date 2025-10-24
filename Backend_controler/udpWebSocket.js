@@ -2,6 +2,7 @@
 const dgram = require('dgram');
 const { Server } = require('socket.io');
 const gamepad = require('./build/Release/gamepad.node');
+const logger = require('./logger');
 const {
     getStatus,
     getDynamicConfig,
@@ -18,9 +19,9 @@ let shuttingDown = false;
 // ---------- Initialize Gamepad ----------
 try {
     gamepad.create();
-    console.log('🎮 Gamepad initialized');
+    logger.info('🎮 Gamepad initialized');
 } catch (err) {
-    console.error('❌ Failed to initialize gamepad native module:', err);
+    logger.error('❌ Failed to initialize gamepad native module:', err);
     // If the native module can't be initialized, abort early to avoid undefined behavior
     process.exit(1);
 }
@@ -61,13 +62,13 @@ udpServer.on('message', (msg, rinfo) => {
     try {
         d = JSON.parse(msg.toString());
     } catch (e) {
-        console.warn('⚠️ UDP message is not JSON, ignoring from', rinfo.address, ':', msg.toString());
+        logger.warn('⚠️ UDP message is not JSON, ignoring from %s : %s', rinfo.address, msg.toString());
         return;
     }
 
     const { type: t, side, index } = d || {};
     if (!t) {
-        console.warn('⚠️ UDP message missing `type`, ignoring from', rinfo.address);
+        logger.warn('⚠️ UDP message missing `type`, ignoring from %s', rinfo.address);
         return;
     }
 
@@ -78,7 +79,7 @@ udpServer.on('message', (msg, rinfo) => {
         try {
             gamepad.moveStick(side, x, y);
         } catch (err) {
-            console.error('❌ Error moving stick:', err);
+            logger.error('❌ Error moving stick: %o', err);
         }
         return;
     }
@@ -90,7 +91,7 @@ udpServer.on('message', (msg, rinfo) => {
         // normalize index (UDP senders may send strings)
         const idx = typeof index === 'string' ? parseInt(index, 10) : index;
         if (!Number.isInteger(idx)) {
-            console.warn('⚠️ button event with invalid index from', rinfo.address, ':', index);
+            logger.warn('⚠️ button event with invalid index from %s : %s', rinfo.address, index);
             return;
         }
 
@@ -100,7 +101,7 @@ udpServer.on('message', (msg, rinfo) => {
             try {
                 gamepad.pressButton(buttonStr, pressed);
             } catch (err) {
-                console.error(`❌ Error pressing button ${buttonStr}:`, err);
+                logger.error('❌ Error pressing button %s: %o', buttonStr, err);
             }
             return;
         }
@@ -114,26 +115,26 @@ udpServer.on('message', (msg, rinfo) => {
             try {
                 gamepad.pressButton(capitalized, pressed);
             } catch (err) {
-                console.error(`❌ Error pressing dpad button ${capitalized}:`, err);
+                logger.error('❌ Error pressing dpad button %s: %o', capitalized, err);
             }
             return;
         }
 
-        console.warn('⚠️ Unknown button index from', rinfo.address, ':', idx);
+        logger.warn('⚠️ Unknown button index from %s : %s', rinfo.address, idx);
         return;
     }
 
     // 🌐 Misc events
     else if (t === 'config' && d.constants) {
-        console.log('⚡ Ignored config from UDP:', rinfo.address);
+        logger.info('⚡ Ignored config from UDP: %s', rinfo.address);
     } else if (t === 'ip_update' && d.ip) {
-        console.log(`🌐 Received IP update from ${rinfo.address}: ${d.ip}`);
+        logger.info('🌐 Received IP update from %s: %s', rinfo.address, d.ip);
     }
 });
 
 // UDP error handler
 udpServer.on('error', (err) => {
-    console.error('❌ UDP server error:', err);
+    logger.error('❌ UDP server error: %o', err);
     try {
         udpServer.close();
     } catch (e) {
@@ -144,7 +145,7 @@ udpServer.on('error', (err) => {
 // ---------- UDP Start ----------
 function startUdpServer(port = UDP_PORT) {
     udpServer.bind(port, '0.0.0.0', () =>
-        console.log(`🟢 UDP running on ${port}`)
+        logger.info('🟢 UDP running on %s', port)
     );
 }
 
@@ -237,3 +238,24 @@ module.exports = {
     initSocketIO,
     UDP_PORT
 };
+
+// Stop/cleanup function to allow external shutdown orchestration
+function stopUdpServer() {
+    try {
+        udpServer.close();
+    } catch (e) {}
+
+    if (ioInstance && typeof ioInstance.close === 'function') {
+        try {
+            ioInstance.close();
+        } catch (e) {
+            console.error('Error closing Socket.IO in stopUdpServer:', e);
+        }
+    }
+
+    try {
+        gamepad.close();
+    } catch (e) {}
+}
+
+module.exports.stopUdpServer = stopUdpServer;

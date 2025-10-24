@@ -8,7 +8,8 @@ try {
     screenSize = robot.getScreenSize();
     mousePos = robot.getMousePos();
 } catch (e) {
-    console.error('❌ RobotJS failed:', e);
+    const logger = require('./logger');
+    logger.error('❌ RobotJS failed: %o', e);
     // Fallback in case robotjs fails (e.g., missing X server)
     screenSize = { width: 1920, height: 1080 };
     mousePos = { x: 960, y: 540 };

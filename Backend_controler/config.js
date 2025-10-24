@@ -27,9 +27,11 @@ function loadConfig() {
             if (typeof data.allowFrontendConfig === 'boolean') {
                 ALLOW_FRONTEND_CONFIG = data.allowFrontendConfig;
             }
-            console.log('⚡ Loaded persisted config:', dynamicConfig, 'Frontend config:', ALLOW_FRONTEND_CONFIG);
+            const logger = require('./logger');
+            logger.info('⚡ Loaded persisted config: %o Frontend config: %s', dynamicConfig, ALLOW_FRONTEND_CONFIG);
         } catch (e) {
-            console.error('❌ Failed to load persisted config:', e);
+            const logger = require('./logger');
+            logger.error('❌ Failed to load persisted config: %o', e);
         }
     }
 }
@@ -45,7 +47,8 @@ function saveConfig() {
             JSON.stringify(configToSave, null, 2)
         );
     } catch (e) {
-        console.error('❌ Failed to save config:', e);
+        const logger = require('./logger');
+        logger.error('❌ Failed to save config: %o', e);
     }
 }
 
@@ -53,15 +56,22 @@ function applyConfig(updates, persist = true) {
     let tickRateChanged = false;
     if (typeof updates !== 'object') return;
     for (const [k, v] of Object.entries(updates)) {
-        if (dynamicConfig.hasOwnProperty(k) && typeof v === 'number') {
-            if (k === 'TICK_RATE' && dynamicConfig.TICK_RATE !== v) {
-                tickRateChanged = true;
+        if (!dynamicConfig.hasOwnProperty(k)) continue;
+        // Numeric updates
+        if (typeof dynamicConfig[k] === 'number' && typeof v === 'number') {
+            if (k === 'TICK_RATE') {
+                // Clamp tick rate to reasonable bounds to avoid runaway CPU usage
+                const clamped = Math.max(10, Math.min(240, Math.round(v)));
+                if (dynamicConfig.TICK_RATE !== clamped) tickRateChanged = true;
+                dynamicConfig.TICK_RATE = clamped;
+            } else {
+                dynamicConfig[k] = v;
             }
-            dynamicConfig[k] = v;
         }
     }
     if (persist) saveConfig();
-    console.log('🔧 Config applied:', dynamicConfig);
+    const logger = require('./logger');
+    logger.info('🔧 Config applied: %o', dynamicConfig);
     return { tickRateChanged };
 }
 
@@ -73,7 +83,8 @@ function setAllowFrontendConfig(allow) {
     if (typeof allow === 'boolean') {
         ALLOW_FRONTEND_CONFIG = allow;
         saveConfig();
-        console.log('⚡ ALLOW_FRONTEND_CONFIG =', ALLOW_FRONTEND_CONFIG);
+        const logger = require('./logger');
+        logger.info('⚡ ALLOW_FRONTEND_CONFIG = %s', ALLOW_FRONTEND_CONFIG);
         return true;
     }
     return false;
