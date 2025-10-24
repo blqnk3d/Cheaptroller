@@ -1,4 +1,4 @@
-// lib/Xbox_Controller.dart
+// lib/Playstation_controler.dart
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -39,7 +39,7 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
     ]);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
   }
-
+  
   Future<void> _initSocket() async {
     final settings = Provider.of<SettingsProvider>(context, listen: false);
     final newIp = settings.ipAddress;
@@ -205,7 +205,7 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Padding(
-                                padding: EdgeInsets.only(left: width * 0.13),
+                                padding: EdgeInsets.only(left: width * 0.10),
                                 child: buildJoystick('left', height * 0.38),
                               ),
                               Column(
@@ -223,7 +223,7 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
                                 ],
                               ),
                               Padding(
-                                padding: EdgeInsets.only(right: width * 0.13),
+                                padding: EdgeInsets.only(right: width * 0.10),
                                 child: buildJoystick('right', height * 0.38),
                               ),
                             ],

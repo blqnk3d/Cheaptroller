@@ -15,8 +15,14 @@ const UDP_PORT = 8080;
 let ioInstance = null;
 
 // ---------- Initialize Gamepad ----------
-gamepad.create();
-console.log('🎮 Gamepad initialized');
+try {
+    gamepad.create();
+    console.log('🎮 Gamepad initialized');
+} catch (err) {
+    console.error('❌ Failed to initialize gamepad native module:', err);
+    // If the native module can't be initialized, abort early to avoid undefined behavior
+    process.exit(1);
+}
 
 // ---------- UDP Server ----------
 const udpServer = dgram.createSocket('udp4');
@@ -49,16 +55,20 @@ let dpadY = 0;
 
 // ---------- UDP Message Handling ----------
 udpServer.on('message', (msg, rinfo) => {
-
+    // Avoid logging every UDP message - only warn on parse/validation errors.
     let d;
     try {
         d = JSON.parse(msg.toString());
     } catch (e) {
-        console.warn('⚠️ UDP message is not JSON, ignoring:', msg.toString());
+        console.warn('⚠️ UDP message is not JSON, ignoring from', rinfo.address, ':', msg.toString());
         return;
     }
 
-    const { type: t, side, index } = d;
+    const { type: t, side, index } = d || {};
+    if (!t) {
+        console.warn('⚠️ UDP message missing `type`, ignoring from', rinfo.address);
+        return;
+    }
 
     // 🕹 Stick movement
     if (t === 'move' && (side === 'left' || side === 'right')) {
@@ -69,42 +79,49 @@ udpServer.on('message', (msg, rinfo) => {
         } catch (err) {
             console.error('❌ Error moving stick:', err);
         }
+        return;
     }
 
     // 🔘 Button press/release
     else if (t === 'button_down' || t === 'button_up') {
         const pressed = t === 'button_down';
 
-        // Check if it's a normal button
-        let buttonStr = BUTTON_MAP[index];
+        // normalize index (UDP senders may send strings)
+        const idx = typeof index === 'string' ? parseInt(index, 10) : index;
+        if (!Number.isInteger(idx)) {
+            console.warn('⚠️ button event with invalid index from', rinfo.address, ':', index);
+            return;
+        }
 
+        // Check if it's a normal button
+        const buttonStr = BUTTON_MAP[idx];
         if (buttonStr) {
             try {
                 gamepad.pressButton(buttonStr, pressed);
             } catch (err) {
                 console.error(`❌ Error pressing button ${buttonStr}:`, err);
             }
+            return;
         }
 
         // Check if it's a D-Pad button
-        else if (DPAD_MAP[index]) {
-            const dir = DPAD_MAP[index];
-
-            if (dir === 'up') dpadY = pressed ? -1 : (dpadY === -1 ? 0 : dpadY);
-            if (dir === 'down') dpadY = pressed ? 1 : (dpadY === 1 ? 0 : dpadY);
-            if (dir === 'left') dpadX = pressed ? -1 : (dpadX === -1 ? 0 : dpadX);
-            if (dir === 'right') dpadX = pressed ? 1 : (dpadX === 1 ? 0 : dpadX);
+        const dpadDir = DPAD_MAP[idx];
+        if (dpadDir) {
+            if (dpadDir === 'up') dpadY = pressed ? -1 : (dpadY === -1 ? 0 : dpadY);
+            if (dpadDir === 'down') dpadY = pressed ? 1 : (dpadY === 1 ? 0 : dpadY);
+            if (dpadDir === 'left') dpadX = pressed ? -1 : (dpadX === -1 ? 0 : dpadX);
+            if (dpadDir === 'right') dpadX = pressed ? 1 : (dpadX === 1 ? 0 : dpadX);
 
             try {
                 gamepad.moveDpad(dpadX, dpadY);
             } catch (err) {
                 console.error(`❌ Error moving dpad:`, err);
             }
+            return;
         }
 
-        else {
-            console.warn('⚠️ Unknown button index:', index);
-        }
+        console.warn('⚠️ Unknown button index from', rinfo.address, ':', idx);
+        return;
     }
 
     // 🌐 Misc events
@@ -112,6 +129,16 @@ udpServer.on('message', (msg, rinfo) => {
         console.log('⚡ Ignored config from UDP:', rinfo.address);
     } else if (t === 'ip_update' && d.ip) {
         console.log(`🌐 Received IP update from ${rinfo.address}: ${d.ip}`);
+    }
+});
+
+// UDP error handler
+udpServer.on('error', (err) => {
+    console.error('❌ UDP server error:', err);
+    try {
+        udpServer.close();
+    } catch (e) {
+        // ignore
     }
 });
 
@@ -129,7 +156,9 @@ function initSocketIO(httpServer) {
     ioInstance.on('connection', (socket) => {
         console.log('🔌 Web client connected');
 
-        const sendStatus = () => {
+        // Emit status immediately and then on an interval. Keep the interval id so
+        // we can clear it when the socket disconnects (avoids runaway timers).
+        const emitStatus = () => {
             const config = getDynamicConfig();
             const allowFrontendConfig = getAllowFrontendConfig();
             socket.emit('status', {
@@ -137,11 +166,18 @@ function initSocketIO(httpServer) {
                 config,
                 allowFrontendConfig
             });
-
-            const tickIntervalMs = Math.round(1000 / config.TICK_RATE);
-            setTimeout(sendStatus, tickIntervalMs);
         };
-        sendStatus();
+
+        emitStatus();
+        // Compute a reasonable default tick (don't allow too-fast intervals)
+        const initialTick = (getDynamicConfig() && getDynamicConfig().TICK_RATE) || 10;
+        const statusIntervalMs = Math.max(50, Math.round(1000 / initialTick));
+        const statusInterval = setInterval(emitStatus, statusIntervalMs);
+
+        socket.on('disconnect', () => {
+            clearInterval(statusInterval);
+            console.log('🔌 Web client disconnected');
+        });
 
         socket.on('config', (newConfig) => {
             if (getAllowFrontendConfig()) {
@@ -157,9 +193,34 @@ function initSocketIO(httpServer) {
     return ioInstance;
 }
 
-// ---------- Graceful Shutdown ----------
-process.on('exit', () => gamepad.close());
-process.on('SIGINT', () => process.exit());
+function shutdown(signal) {
+    console.log('🛑 Shutting down', signal || '');
+    try {
+        udpServer.close();
+    } catch (e) {}
+
+    if (ioInstance && typeof ioInstance.close === 'function') {
+        try {
+            ioInstance.close();
+        } catch (e) {
+            console.error('Error closing Socket.IO:', e);
+        }
+    }
+
+    try {
+        gamepad.close();
+    } catch (e) {
+        console.error('Error closing gamepad:', e);
+    }
+
+    // allow process to exit naturally
+}
+
+process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('exit', () => {
+    try { gamepad.close(); } catch (e) {}
+});
 
 module.exports = {
     startUdpServer,
