@@ -1,7 +1,7 @@
 // udpWebSocket.js
 const dgram = require('dgram');
 const { Server } = require('socket.io');
-const gamepad = require('./build/Release/gamepad.node');
+const gamepad = require('./gamepad.node');
 const logger = require('./logger');
 const {
     getStatus,

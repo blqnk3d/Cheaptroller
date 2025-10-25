@@ -2,7 +2,6 @@
 const express = require('express');
 const http = require('http');
 const { initSocketIO } = require('./udpWebSocket');
-const { getStatus } = require('./inputHandler');
 const { applyConfig, getDynamicConfig, getAllowFrontendConfig, setAllowFrontendConfig } = require('./config');
 const { getAllLocalIPs } = require('./utils');
 
@@ -40,7 +39,6 @@ function startWebServer(port = WEB_PORT) {
     // Return current status and config
     app.get('/api/status', (req, res) => {
         res.json({
-            ...getStatus(),
             config: getDynamicConfig(),
             allowFrontendConfig: getAllowFrontendConfig()
         });
