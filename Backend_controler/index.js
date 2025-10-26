@@ -1,5 +1,4 @@
 // index.js
-const { loadConfig, getDynamicConfig } = require('./config');
 const { startUdpServer, UDP_PORT, stopUdpServer } = require('./udpWebSocket');
 const { startWebServer, WEB_PORT } = require('./webserver');
 
@@ -7,8 +6,6 @@ const {
     nowMs, smoothingAlpha, mag01, angleOf, angleDiff, clamp
 } = require('./utils');
 
-// ---------- Load persisted settings ----------
-loadConfig();
 
 // Start Servers
 startUdpServer(UDP_PORT);
