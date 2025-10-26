@@ -79,24 +79,15 @@ The button mapping follows a standard, real-world controller configuration.
 
 ## 6. Troubleshooting
 
-| Issue                 | Solution                                                                    |
-| :-------------------- | :-------------------------------------------------------------------------- |
-| **Connection Issues** | Check IP address, port number, and firewall settings.                       |
-| **Minimal/No Input**  | Ensure the mobile app is running and the joystick is actively sending data. |
-| **Debugging**         | Enable logs within both the server and the app for detailed output.         |
+| Issue                 | Solution                                |
+| :-------------------- | :-------------------------------------- |
+| **Connection Issues** | Check IP address and firewall settings. |
 
 ## 7. Roadmap / To-Do
 
-- Auto-reconnect after the initial manual connection.
 - Popup notifications for connection issues.
 - Vibrational feedback on button press.
-- Multi-device support.
 
 ## 8. License
 
 See the [LICENSE](LICENSE) file for details.
-
-## 9. Acknowledgements / Credits
-
-- Libraries, frameworks, or tools used.
-- Designers, testers, and contributors.
