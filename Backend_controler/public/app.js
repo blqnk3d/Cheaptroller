@@ -21,6 +21,19 @@ async function init() {
       else console.log('QR code generated for', url);
     });
   }
+
+  // Shutdown button
+  const shutdownBtn = document.getElementById('shutdown-btn');
+  shutdownBtn.addEventListener('click', async () => {
+    if (confirm('Are you sure you want to shut down the server?')) {
+      try {
+        await fetch('/api/shutdown', { method: 'POST' });
+        alert('Server is shutting down...');
+      } catch (err) {
+        console.error('Failed to shut down server:', err);
+      }
+    }
+  });
 }
 
 window.addEventListener('DOMContentLoaded', init);

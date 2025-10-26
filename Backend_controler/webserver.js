@@ -6,19 +6,29 @@ const { initSocketIO } = require('./udpWebSocket');
 
 const WEB_PORT = 3000;
 
+let httpServer = null;
+let ioInstance = null;
+let shuttingDown = false;
+
 function startWebServer(port = WEB_PORT) {
     const app = express();
-    const httpServer = http.createServer(app);
+    httpServer = http.createServer(app);
 
-    // Initialize Socket.io if needed
-    initSocketIO(httpServer);
+    // Initialize Socket.IO
+    ioInstance = initSocketIO(httpServer);
 
     // API endpoint to get local IPs
     app.get('/api/myip', (req, res) => {
         res.json({ ips: getAllLocalIPs(), port: WEB_PORT });
     });
 
-    // Serve static files from public/
+    // Shutdown endpoint
+    app.post('/api/shutdown', (req, res) => {
+        res.json({ status: 'shutting down' });
+        shutdown('web endpoint');
+    });
+
+    // Serve static files
     const publicPath = path.join(__dirname, 'public');
     app.use(express.static(publicPath));
 
@@ -34,4 +44,20 @@ function startWebServer(port = WEB_PORT) {
     return { app, httpServer };
 }
 
-module.exports = { startWebServer, WEB_PORT };
+function shutdown(signal) {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    console.log('🛑 Web server shutting down', signal || '');
+
+    try { httpServer.close(); } catch (e) {}
+    if (ioInstance && typeof ioInstance.close === 'function') {
+        try { ioInstance.close(); } catch (e) { console.error('Error closing Socket.IO:', e); }
+    }
+
+    setTimeout(() => {
+        console.log('🛑 Forcing process exit');
+        try { process.exit(0); } catch (e) {}
+    }, 1000);
+}
+
+module.exports = { startWebServer, WEB_PORT, shutdown };

@@ -15,7 +15,8 @@
   },
   "pkg": {
     "assets": [
-      "gamepad.node"
+      "gamepad.node",
+      "public/**/*"
     ],
     "targets": [
       "node18-linux-x64"

@@ -7,6 +7,9 @@ import 'package:game_controler/style.dart';
 import 'package:provider/provider.dart';
 import 'package:game_controler/Settings/settingsProvider.dart';
 
+// RouteObserver to detect returning from other pages
+final RouteObserver<ModalRoute> routeObserver = RouteObserver<ModalRoute>();
+
 class StartPage extends StatefulWidget {
   static const routeName = '/';
   const StartPage({super.key});
@@ -15,17 +18,12 @@ class StartPage extends StatefulWidget {
   State<StartPage> createState() => _StartPageState();
 }
 
-class _StartPageState extends State<StartPage> {
+class _StartPageState extends State<StartPage> with RouteAware {
   late TextEditingController _ipController;
 
   @override
   void initState() {
     super.initState();
-    // Force landscape mode
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.landscapeLeft,
-      DeviceOrientation.landscapeRight,
-    ]);
 
     _ipController = TextEditingController();
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -37,7 +35,8 @@ class _StartPageState extends State<StartPage> {
   @override
   void dispose() {
     _ipController.dispose();
-    SystemChrome.setPreferredOrientations(DeviceOrientation.values);
+    SystemChrome.setPreferredOrientations(DeviceOrientation.values); // reset
+    routeObserver.unsubscribe(this);
     super.dispose();
   }
 
@@ -125,46 +124,32 @@ class _StartPageState extends State<StartPage> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // IP display
                 GestureDetector(
                   onTap: _editIpDialog,
                   child: Text(
                     ip.isEmpty ? '(Keine IP gesetzt)' : ip,
                     textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
+                    style: const TextStyle(color: Colors.white, fontSize: 18),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                ElevatedButton.icon(
+                  onPressed: _scanQRCode,
+                  icon: const Icon(Icons.qr_code_scanner),
+                  label: const Text('Scan QR code to connect'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.background,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 16,
+                      horizontal: 24,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
                   ),
                 ),
-
-                const SizedBox(height: 12),
-
-                // QR code button and label
-                Column(
-                  children: [
-                    ElevatedButton.icon(
-                      onPressed: _scanQRCode,
-                      icon: const Icon(Icons.qr_code_scanner, size: 28),
-                      label: const Text('Scan QR Code to connect'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.background,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 14,
-                          horizontal: 20,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-
                 const SizedBox(height: 30),
-
                 ElevatedButton(
                   onPressed:
                       ip.isEmpty ? null : () => _playstation_controller(ip),
@@ -187,7 +172,6 @@ class _StartPageState extends State<StartPage> {
                   ),
                 ),
                 const SizedBox(height: 10),
-
                 ElevatedButton(
                   onPressed: ip.isEmpty ? null : () => _xbox_controller(ip),
                   style: ElevatedButton.styleFrom(

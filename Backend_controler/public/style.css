@@ -58,3 +58,30 @@ h2 {
 #qr-code {
   margin-top: 1rem;
 }
+
+
+/* Button styling */
+#shutdown-btn {
+  background: #ff4d4f;       /* Red color for shutdown */
+  color: #fff;               /* White text */
+  border: none;
+  border-radius: 8px;
+  padding: 12px 24px;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+#shutdown-btn:hover {
+  background: #ff7875;       /* Slightly lighter on hover */
+  transform: translateY(-2px);
+  box-shadow: 0 6px 10px rgba(0,0,0,0.15);
+}
+
+#shutdown-btn:active {
+  background: #d9363e;       /* Darker when pressed */
+  transform: translateY(0);
+  box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+}
