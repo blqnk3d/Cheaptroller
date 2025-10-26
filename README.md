@@ -1,119 +1,102 @@
 # Cheaptroller
 
-## 1. Project Overview
+Cheaptroller is a **lightweight controller application** that transforms your mobile device into a versatile PC game controller. It eliminates the need for extra hardware by connecting your phone to a small, local **Node.js server** that bridges the mobile inputs to your PC using a custom **C++ library for input simulation**.
 
-**Description:**  
-Cheaptroller is a lightweight controller app that turns your mobile device into a versatile game controller. It connects your phone to a small local Node.js server that bridges inputs to your PC with a custom C++ lib for input simulation.
+The project's goal is simple: provide an easy, zero-cost way to control PC games using a device you already own.
 
-**Purpose / Motivation:**  
-The project aims to provide an easy way to control your PC using a mobile device, enabling gaming without extra hardware.
+The **Cheaptroller** app is currently confirmed to be functional and tested only on **Linux systems** because its core C++ input simulation library is Linux-specific, and there is **no support** for **Windows or macOS** at this time.
 
-**Problems Solved:**
+## 1. Key Features
 
-- Eliminates the need for dedicated game controllers
+- **Standard Layouts:** Choose between **PlayStation** and **Xbox** controller layouts.
+- **Easy Connection:** Quickly connect the mobile app to the server using a **QR Code**.
+- **True Simulation:** The app acts as a **real controller**, ensuring recognition by games and platforms like **Steam**.
 
----
+## 2. Installation & Setup
 
-## 2. Features
+### Mobile Application
 
-- Connecting via QR Code
-- **2 Layouts**
-  - Playstation
-  - XBox
-- **Simulation** : acts as a real controller so games with support / Steam recognice it
+1.  **Download:** Get the **APK** file on your phone.
+2.  **Install:** Install the application.
+3.  **Launch:** Open the app—it should be ready to connect.
 
----
+### PC Server
 
-## UI
+1.  **Download:** Grab the server binary from the project's releases.
+2.  **Permissions:** Give the file executable rights via the terminal:
+    ```bash
+    chmod +x Backend_controler
+    ```
+3.  **Run:** Execute the file by double-clicking it or running it from the terminal. A browser with the configuration **dashboard** will automatically open.
 
-### App
+**Important Notes:**
 
-<div style="text-align: center;">
-  <img src="assets/MainPage.jpg" alt="Main Page" width="600">
-</div>
-
----
-
-<div style="text-align: center;">
-  <img src="assets/Playstation_Controller.jpg" alt="Playstation_Controller" >
-</div>
+- Ensure your **firewall** is configured to allow **UDP traffic** for the server application.
 
 ---
 
-<div style="text-align: center;">
-  <img src="assets/XBox_Controller.jpg" alt="XBox_Controller" >
-</div>
+## 3. Screenshots and User Interface (UI)
 
-### Server
+Cheaptroller's user interface is functional and designed to provide an authentic controller experience on the mobile device, while the backend allows for intuitive management.
 
-<div style="text-align: center;">
-  <img src="assets/Server_Dash_board.png" alt="Server_Dash_board" >
-</div>
-
----
+| Description                                                                                                                                                                                                                             | Screenshot                                                                             |
+| :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------- |
+| **Main Page**                                                                                                                                                                                                                           | <img src="assets/MainPage.jpg" alt="Main Page" width="400">                            |
+| The mobile app's start page serves as the central hub. Here, the connection to the PC server is established, either by entering the IP address or by using the quick QR code function.                                                  |
+| **PlayStation Controller Layout**                                                                                                                                                                                                       | <img src="assets/Playstation_Controller.jpg" alt="Playstation Controller" width="400"> |
+| The PlayStation layout reproduces the typical symbols (Cross, Square, Triangle, Circle), along with the D-pad and analog sticks. This layout offers familiar controls for PS-oriented gamers.                                           |
+| **XBox Controller Layout**                                                                                                                                                                                                              | <img src="assets/XBox_Controller.jpg" alt="Xbox Controller" width="400">               |
+| The Xbox layout provides the A, B, X, and Y buttons as well as the precise arrangement of the analog sticks to simulate the feel of a real Xbox controller.                                                                             |
+| **Server Dashboard (Web-UI)**                                                                                                                                                                                                           | <img src="assets/Server_Dash_board.png" alt="Server Dashboard" width="400">            |
+| The Dashboard opens in the browser after the Node.js server is started on the PC. It serves as a management interface for checking the connection status, IP address, and port, as well as for troubleshooting or future configuration. |
 
 ## 4. Technologies
 
-- **Node.js Backend:** Handles server communication and input translation (UDP protocol)
-- **Flutter Frontend:** Mobile app that sends control data
-- Optional: Additional libraries or dependencies
+| Component            | Technology             | Role                                                                           |
+| :------------------- | :--------------------- | :----------------------------------------------------------------------------- |
+| **Backend / Server** | **Node.js**            | Handles server communication and input translation using the **UDP protocol**. |
+| **Frontend / App**   | **Flutter**            | Mobile application that captures and sends control data.                       |
+| **PC Input Bridge**  | **Custom C++ Library** | Simulates controller input directly on the PC.                                 |
 
 ---
 
-## 5. Installation & Setup
+## 5. Usage & Controls
 
-### **Steps:**
+The button mapping follows a standard, real-world controller configuration.
 
-#### **APP**
-
-1. Download the apk on ur phone
-2. Install it (u can scann it via Google play)
-3. u can now open the app and it should start
-
-#### **SERVER**
-
-1. Download the binary from the releases
-2. give it executable right via `chmod +x Backend_controler`
-3. u can now run it by double click or through the terminal
-4. a browser with the dashboard should appear
-
-**Notes:**
-
-- Ensure firewall allows UDP traffic
-- Optional: Provide QR code or direct link for mobile app
+| Action                  | Mapping                                                    |
+| :---------------------- | :--------------------------------------------------------- |
+| **Standard Buttons**    | Normal controller mapping                                  |
+| **Big Bumpers (L3/R3)** | Accessed by **double-clicking** the corresponding joystick |
 
 ---
 
-## 6. Usage / Controls
+## 6. Troubleshooting
 
-Normal mapping like a real controller exept the Big bumpers are currently accesed via double clicking the joystick on the respected side
-
----
-
-## 8. Troubleshooting
-
-- Connection issues: Check IP, port, and firewall
-- Minimal or no input: Ensure the app is running and joystick is active
-- Debugging tips: Enable logs in server and app
+| Issue                 | Solution                                                                    |
+| :-------------------- | :-------------------------------------------------------------------------- |
+| **Connection Issues** | Check IP address, port number, and firewall settings.                       |
+| **Minimal/No Input**  | Ensure the mobile app is running and the joystick is actively sending data. |
+| **Debugging**         | Enable logs within both the server and the app for detailed output.         |
 
 ---
 
-## 9. Roadmap / To-Do
+## 7. Roadmap / To-Do
 
-- Auto-reconnect after first manual connection
-- Popup notifications for connection issues
-- Vibrational feedback on button press
-- Multi-device support
-
----
-
-## 11. License
-
-[License](LICENSE)
+- Auto-reconnect after the initial manual connection.
+- Popup notifications for connection issues.
+- Vibrational feedback on button press.
+- Multi-device support.
 
 ---
 
-## 12. Acknowledgements / Credits
+## 8. License
 
-- Libraries, frameworks, or tools used
-- Designers, testers, and contributors
+See the [LICENSE](LICENSE) file for details.
+
+---
+
+## 9. Acknowledgements / Credits
+
+- Libraries, frameworks, or tools used.
+- Designers, testers, and contributors.
