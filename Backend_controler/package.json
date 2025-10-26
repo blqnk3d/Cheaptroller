@@ -12,5 +12,14 @@
     "express": "^5.1.0",
     "node-addon-api": "^8.5.0",
     "socket.io": "^4.8.1"
+  },
+  "pkg": {
+    "assets": [
+      "gamepad.node"
+    ],
+    "targets": [
+      "node18-linux-x64"
+    ],
+    "outputPath": "dist"
   }
 }
