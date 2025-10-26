@@ -12,7 +12,6 @@ let dynamicConfig = {
   "TICK_RATE": 144,
   "TURN_RATE_DEG_PER_SEC": 779,
   "SENSITIVITY_CURVE": 0.1,
-  "allowFrontendConfig": true
 }
 ;
 

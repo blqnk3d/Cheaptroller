@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:game_controler/Controller_Layouts/Playstation_Controller.dart';
 import 'package:game_controler/Controller_Layouts/XBox_Controller.dart.dart';
+import 'package:game_controler/Elements/qrScanner.dart';
 import 'package:game_controler/Settings/settings.dart';
 import 'package:game_controler/style.dart';
 import 'package:provider/provider.dart';
@@ -32,11 +33,26 @@ class _StartPageState extends State<StartPage> {
   }
 
   void _playstation_controller(String ip) {
-    Navigator.pushNamed(context, Playstation_Controller.routeName, arguments: ip);
+    Navigator.pushNamed(
+      context,
+      Playstation_Controller.routeName,
+      arguments: ip,
+    );
   }
 
-   void _xbox_controller(String ip) {
+  void _xbox_controller(String ip) {
     Navigator.pushNamed(context, Xbox_Controller.routeName, arguments: ip);
+  }
+
+  void _scanQRCode() async {
+    final scannedIp = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(builder: (_) => QRScannerPage()),
+    );
+
+    if (scannedIp != null && scannedIp.isNotEmpty) {
+      context.read<SettingsProvider>().setIpAddress(scannedIp);
+    }
   }
 
   @override
@@ -59,15 +75,33 @@ class _StartPageState extends State<StartPage> {
                   style: const TextStyle(color: Colors.white, fontSize: 18),
                 ),
                 const SizedBox(height: 20),
-                
+
+                // QR Code Scan Button
                 ElevatedButton(
-                  onPressed: ip.isEmpty ? null : () => _playstation_controller(ip),
+                  onPressed: _scanQRCode,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor:
-                        AppColors.cardBackground, 
-                    foregroundColor: AppColors.textPrimary, 
-                    disabledBackgroundColor:
-                        AppColors.buttonDisabled, 
+                    backgroundColor: AppColors.background,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 16,
+                      horizontal: 24,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text('Scan QR Code', style: AppTextStyles.body),
+                ),
+
+                const SizedBox(height: 20),
+
+                ElevatedButton(
+                  onPressed:
+                      ip.isEmpty ? null : () => _playstation_controller(ip),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.cardBackground,
+                    foregroundColor: AppColors.textPrimary,
+                    disabledBackgroundColor: AppColors.buttonDisabled,
                     disabledForegroundColor: Colors.grey[500],
                     padding: const EdgeInsets.symmetric(
                       vertical: 16,
@@ -77,18 +111,19 @@ class _StartPageState extends State<StartPage> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Text('Start Playstation Controller', style: AppTextStyles.body),
+                  child: const Text(
+                    'Start Playstation Controller',
+                    style: AppTextStyles.body,
+                  ),
                 ),
                 const SizedBox(height: 10),
 
                 ElevatedButton(
                   onPressed: ip.isEmpty ? null : () => _xbox_controller(ip),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor:
-                        AppColors.cardBackground, 
-                    foregroundColor: AppColors.textPrimary, 
-                    disabledBackgroundColor:
-                        AppColors.buttonDisabled, 
+                    backgroundColor: AppColors.cardBackground,
+                    foregroundColor: AppColors.textPrimary,
+                    disabledBackgroundColor: AppColors.buttonDisabled,
                     disabledForegroundColor: Colors.grey[500],
                     padding: const EdgeInsets.symmetric(
                       vertical: 16,
@@ -98,7 +133,10 @@ class _StartPageState extends State<StartPage> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Text('Start XBox Controller', style: AppTextStyles.body),
+                  child: const Text(
+                    'Start XBox Controller',
+                    style: AppTextStyles.body,
+                  ),
                 ),
 
                 const SizedBox(height: 10),

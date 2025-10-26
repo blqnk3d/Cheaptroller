@@ -10,12 +10,6 @@ const {
 // ---------- Load persisted settings ----------
 loadConfig();
 
-// ---------- Initial State Setup ----------
-let lastTime = process.hrtime.bigint();
-let tickIntervalMs = Math.round(1000 / getDynamicConfig().TICK_RATE);
-
-
-
 // Start Servers
 startUdpServer(UDP_PORT);
 const { httpServer } = startWebServer(WEB_PORT);

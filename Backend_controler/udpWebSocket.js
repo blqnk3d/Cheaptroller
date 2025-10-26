@@ -125,7 +125,7 @@ udpServer.on('message', (msg, rinfo) => {
     }
 
     // 🌐 Misc events
-    else if (t === 'config' && d.constants) {
+    else if (t === 'config' && true) { // always ignore UDP config changes for security
         logger.info('⚡ Ignored config from UDP: %s', rinfo.address);
     } else if (t === 'ip_update' && d.ip) {
         logger.info('🌐 Received IP update from %s: %s', rinfo.address, d.ip);
@@ -162,7 +162,6 @@ function initSocketIO(httpServer) {
             const config = getDynamicConfig();
             const allowFrontendConfig = getAllowFrontendConfig();
             socket.emit('status', {
-                ...getStatus(),
                 config,
                 allowFrontendConfig
             });
