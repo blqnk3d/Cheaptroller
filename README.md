@@ -6,6 +6,22 @@ The project's goal is simple: provide an easy, zero-cost way to control PC games
 
 The **Cheaptroller** app is currently confirmed to be functional and tested only on **Linux systems** because its core C++ input simulation library is Linux-specific, and there is **no support** for **Windows or macOS** at this time.
 
+---
+
+## Table of Contents
+
+1.  [Key Features](#1-key-features)
+2.  [Installation & Setup](#2-installation--setup)
+3.  [Screenshots and User Interface (UI)](#3-screenshots-and-user-interface-ui)
+4.  [Technologies](#4-technologies)
+5.  [Usage & Controls](#5-usage--controls)
+6.  [Troubleshooting](#6-troubleshooting)
+7.  [Roadmap / To-Do](#7-roadmap--to-do)
+8.  [License](#8-license)
+9.  [Acknowledgements / Credits](#9-acknowledgements--credits)
+
+---
+
 ## 1. Key Features
 
 - **Standard Layouts:** Choose between **PlayStation** and **Xbox** controller layouts.
@@ -41,13 +57,13 @@ Cheaptroller's user interface is functional and designed to provide an authentic
 
 | Description                                                                                                                                                                                                                             | Screenshot                                                                             |
 | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------- |
-| **Main Page**                                                                                                                                                                                                                           | <img src="assets/MainPage.jpg" alt="Main Page" width="400">                            |
+| **Main Page**                                                                                                                                                                                                                           | <img src="assets/MainPage.jpg" alt="Main Page" width="700">                            |
 | The mobile app's start page serves as the central hub. Here, the connection to the PC server is established, either by entering the IP address or by using the quick QR code function.                                                  |
-| **PlayStation Controller Layout**                                                                                                                                                                                                       | <img src="assets/Playstation_Controller.jpg" alt="Playstation Controller" width="400"> |
+| **PlayStation Controller Layout**                                                                                                                                                                                                       | <img src="assets/Playstation_Controller.jpg" alt="Playstation Controller" width="700"> |
 | The PlayStation layout reproduces the typical symbols (Cross, Square, Triangle, Circle), along with the D-pad and analog sticks. This layout offers familiar controls for PS-oriented gamers.                                           |
-| **XBox Controller Layout**                                                                                                                                                                                                              | <img src="assets/XBox_Controller.jpg" alt="Xbox Controller" width="400">               |
+| **XBox Controller Layout**                                                                                                                                                                                                              | <img src="assets/XBox_Controller.jpg" alt="Xbox Controller" width="700">               |
 | The Xbox layout provides the A, B, X, and Y buttons as well as the precise arrangement of the analog sticks to simulate the feel of a real Xbox controller.                                                                             |
-| **Server Dashboard (Web-UI)**                                                                                                                                                                                                           | <img src="assets/Server_Dash_board.png" alt="Server Dashboard" width="400">            |
+| **Server Dashboard (Web-UI)**                                                                                                                                                                                                           | <img src="assets/Server_Dash_board.png" alt="Server Dashboard" width="700">            |
 | The Dashboard opens in the browser after the Node.js server is started on the PC. It serves as a management interface for checking the connection status, IP address, and port, as well as for troubleshooting or future configuration. |
 
 ## 4. Technologies
