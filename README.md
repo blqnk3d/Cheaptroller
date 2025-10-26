@@ -6,8 +6,6 @@ The project's goal is simple: provide an easy, zero-cost way to control PC games
 
 The **Cheaptroller** app is currently confirmed to be functional and tested only on **Linux systems** because its core C++ input simulation library is Linux-specific, and there is **no support** for **Windows or macOS** at this time.
 
----
-
 ## Table of Contents
 
 1.  [Key Features](#1-key-features)
@@ -19,8 +17,6 @@ The **Cheaptroller** app is currently confirmed to be functional and tested only
 7.  [Roadmap / To-Do](#7-roadmap--to-do)
 8.  [License](#8-license)
 9.  [Acknowledgements / Credits](#9-acknowledgements--credits)
-
----
 
 ## 1. Key Features
 
@@ -49,8 +45,6 @@ The **Cheaptroller** app is currently confirmed to be functional and tested only
 
 - Ensure your **firewall** is configured to allow **UDP traffic** for the server application.
 
----
-
 ## 3. Screenshots and User Interface (UI)
 
 Cheaptroller's user interface is functional and designed to provide an authentic controller experience on the mobile device, while the backend allows for intuitive management.
@@ -74,8 +68,6 @@ Cheaptroller's user interface is functional and designed to provide an authentic
 | **Frontend / App**   | **Flutter**            | Mobile application that captures and sends control data.                       |
 | **PC Input Bridge**  | **Custom C++ Library** | Simulates controller input directly on the PC.                                 |
 
----
-
 ## 5. Usage & Controls
 
 The button mapping follows a standard, real-world controller configuration.
@@ -85,8 +77,6 @@ The button mapping follows a standard, real-world controller configuration.
 | **Standard Buttons**    | Normal controller mapping                                  |
 | **Big Bumpers (L3/R3)** | Accessed by **double-clicking** the corresponding joystick |
 
----
-
 ## 6. Troubleshooting
 
 | Issue                 | Solution                                                                    |
@@ -95,8 +85,6 @@ The button mapping follows a standard, real-world controller configuration.
 | **Minimal/No Input**  | Ensure the mobile app is running and the joystick is actively sending data. |
 | **Debugging**         | Enable logs within both the server and the app for detailed output.         |
 
----
-
 ## 7. Roadmap / To-Do
 
 - Auto-reconnect after the initial manual connection.
@@ -104,13 +92,9 @@ The button mapping follows a standard, real-world controller configuration.
 - Vibrational feedback on button press.
 - Multi-device support.
 
----
-
 ## 8. License
 
 See the [LICENSE](LICENSE) file for details.
-
----
 
 ## 9. Acknowledgements / Credits
 
