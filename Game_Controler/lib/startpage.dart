@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:game_controler/Controller_Layouts/Playstation_Controller.dart';
 import 'package:game_controler/Controller_Layouts/XBox_Controller.dart.dart';
-import 'package:game_controler/Settings/settings.dart';
+import 'package:game_controler/Elements/qrScanner.dart';
 import 'package:game_controler/style.dart';
 import 'package:provider/provider.dart';
 import 'package:game_controler/Settings/settingsProvider.dart';
+
+// RouteObserver to detect returning from other pages
+final RouteObserver<ModalRoute> routeObserver = RouteObserver<ModalRoute>();
 
 class StartPage extends StatefulWidget {
   static const routeName = '/';
@@ -15,28 +18,96 @@ class StartPage extends StatefulWidget {
   State<StartPage> createState() => _StartPageState();
 }
 
-class _StartPageState extends State<StartPage> {
+class _StartPageState extends State<StartPage> with RouteAware {
+  late TextEditingController _ipController;
+
   @override
   void initState() {
     super.initState();
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.portraitUp,
-      DeviceOrientation.portraitDown,
-    ]);
+
+    _ipController = TextEditingController();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final currentIp = context.read<SettingsProvider>().ipAddress;
+      _ipController.text = currentIp;
+    });
   }
 
   @override
   void dispose() {
-    SystemChrome.setPreferredOrientations(DeviceOrientation.values);
+    _ipController.dispose();
+    SystemChrome.setPreferredOrientations(DeviceOrientation.values); // reset
+    routeObserver.unsubscribe(this);
     super.dispose();
   }
 
   void _playstation_controller(String ip) {
-    Navigator.pushNamed(context, Playstation_Controller.routeName, arguments: ip);
+    Navigator.pushNamed(
+      context,
+      Playstation_Controller.routeName,
+      arguments: ip,
+    );
   }
 
-   void _xbox_controller(String ip) {
+  void _xbox_controller(String ip) {
     Navigator.pushNamed(context, Xbox_Controller.routeName, arguments: ip);
+  }
+
+  void _scanQRCode() async {
+    final scannedIp = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(builder: (_) => QRScannerPage()),
+    );
+
+    if (scannedIp != null && scannedIp.isNotEmpty) {
+      context.read<SettingsProvider>().setIpAddress(scannedIp);
+      _ipController.text = scannedIp;
+    }
+  }
+
+  Future<void> _editIpDialog() async {
+    final settings = context.read<SettingsProvider>();
+    final newIpController = TextEditingController(text: settings.ipAddress);
+
+    await showDialog(
+      context: context,
+      builder:
+          (ctx) => AlertDialog(
+            backgroundColor: Colors.grey[850],
+            title: const Text('Edit IP', style: TextStyle(color: Colors.white)),
+            content: TextField(
+              controller: newIpController,
+              autofocus: true,
+              style: const TextStyle(color: Colors.white),
+              decoration: const InputDecoration(
+                hintText: 'Enter IP',
+                hintStyle: TextStyle(color: Colors.white38),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text(
+                  'Cancel',
+                  style: TextStyle(color: Colors.white70),
+                ),
+              ),
+              TextButton(
+                onPressed: () {
+                  final ip = newIpController.text.trim();
+                  if (ip.isNotEmpty) {
+                    settings.setIpAddress(ip);
+                    _ipController.text = ip;
+                  }
+                  Navigator.pop(ctx);
+                },
+                child: const Text(
+                  'Save',
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
+            ],
+          ),
+    );
   }
 
   @override
@@ -53,21 +124,39 @@ class _StartPageState extends State<StartPage> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text('Aktuelle IP:', style: TextStyle(color: Colors.white70)),
-                Text(
-                  ip.isEmpty ? '(Keine IP gesetzt)' : ip,
-                  style: const TextStyle(color: Colors.white, fontSize: 18),
+                GestureDetector(
+                  onTap: _editIpDialog,
+                  child: Text(
+                    ip.isEmpty ? '(Keine IP gesetzt)' : ip,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: Colors.white, fontSize: 18),
+                  ),
                 ),
-                const SizedBox(height: 20),
-                
-                ElevatedButton(
-                  onPressed: ip.isEmpty ? null : () => _playstation_controller(ip),
+                const SizedBox(height: 12),
+                ElevatedButton.icon(
+                  onPressed: _scanQRCode,
+                  icon: const Icon(Icons.qr_code_scanner),
+                  label: const Text('Scan QR code to connect'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor:
-                        AppColors.cardBackground, 
-                    foregroundColor: AppColors.textPrimary, 
-                    disabledBackgroundColor:
-                        AppColors.buttonDisabled, 
+                    backgroundColor: AppColors.background,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 16,
+                      horizontal: 24,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 30),
+                ElevatedButton(
+                  onPressed:
+                      ip.isEmpty ? null : () => _playstation_controller(ip),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.cardBackground,
+                    foregroundColor: AppColors.textPrimary,
+                    disabledBackgroundColor: AppColors.buttonDisabled,
                     disabledForegroundColor: Colors.grey[500],
                     padding: const EdgeInsets.symmetric(
                       vertical: 16,
@@ -77,18 +166,18 @@ class _StartPageState extends State<StartPage> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Text('Start Playstation Controller', style: AppTextStyles.body),
+                  child: const Text(
+                    'Start Playstation Controller',
+                    style: AppTextStyles.body,
+                  ),
                 ),
                 const SizedBox(height: 10),
-
                 ElevatedButton(
                   onPressed: ip.isEmpty ? null : () => _xbox_controller(ip),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor:
-                        AppColors.cardBackground, 
-                    foregroundColor: AppColors.textPrimary, 
-                    disabledBackgroundColor:
-                        AppColors.buttonDisabled, 
+                    backgroundColor: AppColors.cardBackground,
+                    foregroundColor: AppColors.textPrimary,
+                    disabledBackgroundColor: AppColors.buttonDisabled,
                     disabledForegroundColor: Colors.grey[500],
                     padding: const EdgeInsets.symmetric(
                       vertical: 16,
@@ -98,17 +187,9 @@ class _StartPageState extends State<StartPage> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Text('Start XBox Controller', style: AppTextStyles.body),
-                ),
-
-                const SizedBox(height: 10),
-                TextButton(
-                  onPressed:
-                      () =>
-                          Navigator.pushNamed(context, SettingsPage.routeName),
                   child: const Text(
-                    'Settings',
-                    style: TextStyle(color: Colors.white70),
+                    'Start XBox Controller',
+                    style: AppTextStyles.body,
                   ),
                 ),
               ],

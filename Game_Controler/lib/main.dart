@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:game_controler/Controller_Layouts/Playstation_Controller.dart' ;
+import 'package:game_controler/Controller_Layouts/Playstation_Controller.dart';
 import 'package:game_controler/Controller_Layouts/XBox_Controller.dart.dart';
-import 'package:game_controler/Settings/settings.dart';
 import 'package:game_controler/Settings/settingsProvider.dart';
 import 'package:provider/provider.dart';
 
 import 'startpage.dart';
-import 'style.dart'; 
+import 'style.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -28,7 +27,8 @@ class MyApp extends StatelessWidget {
         return MaterialApp(
           debugShowCheckedModeBanner: false,
           theme: ThemeData(
-            brightness: settings.isDarkMode ? Brightness.dark : Brightness.light,
+            brightness:
+                settings.isDarkMode ? Brightness.dark : Brightness.light,
             scaffoldBackgroundColor: AppColors.background,
             appBarTheme: AppBarTheme(
               backgroundColor: AppColors.cardBackground,
@@ -55,8 +55,8 @@ class MyApp extends StatelessWidget {
           initialRoute: StartPage.routeName,
           routes: {
             StartPage.routeName: (_) => const StartPage(),
-            SettingsPage.routeName: (_) => SettingsPage(),
-            Playstation_Controller.routeName: (_) => const Playstation_Controller(),
+            Playstation_Controller.routeName:
+                (_) => const Playstation_Controller(),
             Xbox_Controller.routeName: (_) => const Xbox_Controller(),
           },
         );

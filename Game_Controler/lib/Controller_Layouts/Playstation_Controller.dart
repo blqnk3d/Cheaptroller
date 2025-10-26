@@ -39,7 +39,7 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
     ]);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
   }
-  
+
   Future<void> _initSocket() async {
     final settings = Provider.of<SettingsProvider>(context, listen: false);
     final newIp = settings.ipAddress;
@@ -124,10 +124,7 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
       padding: EdgeInsets.symmetric(horizontal: 0, vertical: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          _topButton('LB', 4, 'left'),
-          _topButton('RB', 5, 'right'),
-        ],
+        children: [_topButton('LB', 4, 'left'), _topButton('RB', 5, 'right')],
       ),
     );
   }
@@ -143,13 +140,22 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
       onTapUp: (_) => sendButton(side, index, false),
       onTapCancel: () => sendButton(side, index, false),
       child: Container(
-        padding: EdgeInsets.symmetric(vertical: 5 * scale, horizontal: 12 * scale),
+        padding: EdgeInsets.symmetric(
+          vertical: 5 * scale,
+          horizontal: 12 * scale,
+        ),
         decoration: BoxDecoration(
-          color: isPressed ? Colors.greenAccent.withOpacity(0.5) : AppColors.cardBackground,
+          color:
+              isPressed
+                  ? Colors.greenAccent.withOpacity(0.5)
+                  : AppColors.cardBackground,
           borderRadius: BorderRadius.circular(10 * scale),
           border: Border.all(color: AppColors.textPrimary, width: 1.5 * scale),
         ),
-        child: Text(label, style: AppTextStyles.body.copyWith(fontSize: 13 * scale)),
+        child: Text(
+          label,
+          style: AppTextStyles.body.copyWith(fontSize: 13 * scale),
+        ),
       ),
     );
   }
@@ -163,87 +169,96 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: _isSocketReady
-            ? Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    _buildTopBumpers(width),
-                    Expanded(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          // DPad + Face Buttons
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Padding(
-                                padding: EdgeInsets.only(left: width * 0.04),
-                                child: DPad(
-                                  size: height * 0.34,
-                                  scaleFactor: scaleFactor,
-                                  pressedButtons: _pressedButtons,
-                                  onPressed: (index, pressed) => sendButton('left', index, pressed),
-                                ),
-                              ),
-                              Padding(
-                                padding: EdgeInsets.only(right: width * 0.04),
-                                child: FaceButtons(
-                                  size: height * 0.36,
-                                  scaleFactor: scaleFactor,
-                                  pressedButtons: _pressedButtons,
-                                  onPressed: (index, pressed) => sendButton('right', index, pressed),
-                                ),
-                              ),
-                            ],
-                          ),
-
-                          // Joysticks + Middle Buttons
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Padding(
-                                padding: EdgeInsets.only(left: width * 0.10),
-                                child: buildJoystick('left', height * 0.38),
-                              ),
-                              Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  MiddleButtons(
+        child:
+            _isSocketReady
+                ? Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      _buildTopBumpers(width),
+                      Expanded(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            // DPad + Face Buttons
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Padding(
+                                  padding: EdgeInsets.only(left: width * 0.04),
+                                  child: DPad(
+                                    size: height * 0.34,
                                     scaleFactor: scaleFactor,
                                     pressedButtons: _pressedButtons,
-                                    onPressed: (index, pressed) => sendButton(
-                                      index < 9 ? 'left' : 'right',
-                                      index,
-                                      pressed,
-                                    ),
+                                    onPressed:
+                                        (index, pressed) =>
+                                            sendButton('left', index, pressed),
                                   ),
-                                ],
-                              ),
-                              Padding(
-                                padding: EdgeInsets.only(right: width * 0.10),
-                                child: buildJoystick('right', height * 0.38),
-                              ),
-                            ],
-                          ),
-                        ],
+                                ),
+                                Padding(
+                                  padding: EdgeInsets.only(right: width * 0.04),
+                                  child: FaceButtons(
+                                    size: height * 0.36,
+                                    scaleFactor: scaleFactor,
+                                    pressedButtons: _pressedButtons,
+                                    onPressed:
+                                        (index, pressed) =>
+                                            sendButton('right', index, pressed),
+                                  ),
+                                ),
+                              ],
+                            ),
+
+                            // Joysticks + Middle Buttons
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Padding(
+                                  padding: EdgeInsets.only(left: width * 0.10),
+                                  child: buildJoystick('left', height * 0.38),
+                                ),
+                                Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    MiddleButtons(
+                                      scaleFactor: scaleFactor,
+                                      pressedButtons: _pressedButtons,
+                                      onPressed:
+                                          (index, pressed) => sendButton(
+                                            index < 9 ? 'left' : 'right',
+                                            index,
+                                            pressed,
+                                          ),
+                                    ),
+                                  ],
+                                ),
+                                Padding(
+                                  padding: EdgeInsets.only(right: width * 0.10),
+                                  child: buildJoystick('right', height * 0.38),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
+                )
+                : const Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      CircularProgressIndicator(),
+                      SizedBox(height: 12),
+                      Text("Connecting..."),
+                    ],
+                  ),
                 ),
-              )
-            : const Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    CircularProgressIndicator(),
-                    SizedBox(height: 12),
-                    Text("Connecting..."),
-                  ],
-                ),
-              ),
       ),
     );
   }

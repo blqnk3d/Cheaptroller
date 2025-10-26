@@ -1,63 +1,63 @@
-// webserver.js
 const express = require('express');
 const http = require('http');
-const { initSocketIO } = require('./udpWebSocket');
-const { applyConfig, getDynamicConfig, getAllowFrontendConfig, setAllowFrontendConfig } = require('./config');
+const path = require('path');
 const { getAllLocalIPs } = require('./utils');
+const { initSocketIO } = require('./udpWebSocket');
 
 const WEB_PORT = 3000;
 
+let httpServer = null;
+let ioInstance = null;
+let shuttingDown = false;
+
 function startWebServer(port = WEB_PORT) {
     const app = express();
-    const httpServer = http.createServer(app);
+    httpServer = http.createServer(app);
 
-    // Initialize Socket.io
-    initSocketIO(httpServer);
+    // Initialize Socket.IO
+    ioInstance = initSocketIO(httpServer);
 
-    app.use(express.static('public'));
-    app.use(express.json());
-
-    // Save config from frontend
-    app.post('/api/config', (req, res) => {
-        if (getAllowFrontendConfig()) {
-            const { tickRateChanged } = applyConfig(req.body);
-            res.json({ success: true, config: getDynamicConfig(), tickRateChanged });
-        } else {
-            res.json({ success: false, reason: 'Frontend config disabled' });
-        }
-    });
-
-    // Toggle frontend config
-    app.post('/api/toggleFrontendConfig', (req, res) => {
-        if (setAllowFrontendConfig(req.body.allow)) {
-            res.json({ success: true, allowFrontendConfig: getAllowFrontendConfig() });
-        } else {
-            res.json({ success: false, reason: 'Invalid value' });
-        }
-    });
-
-    // Return current status and config
-    app.get('/api/status', (req, res) => {
-        res.json({
-            config: getDynamicConfig(),
-            allowFrontendConfig: getAllowFrontendConfig()
-        });
-    });
-
-    // API endpoint for local IPs
+    // API endpoint to get local IPs
     app.get('/api/myip', (req, res) => {
         res.json({ ips: getAllLocalIPs(), port: WEB_PORT });
     });
 
+    // Shutdown endpoint
+    app.post('/api/shutdown', (req, res) => {
+        res.json({ status: 'shutting down' });
+        shutdown('web endpoint');
+    });
+
+    // Serve static files
+    const publicPath = path.join(__dirname, 'public');
+    app.use(express.static(publicPath));
+
+    // SPA fallback
+    app.get('/', (req, res) => {
+        res.sendFile(path.join(publicPath, 'index.html'));
+    });
+
     httpServer.listen(port, () => {
-        const logger = require('./logger');
-        logger.info('🌐 Web server running on http://localhost:%s | IPs: %s', port, getAllLocalIPs().join(' | '));
+        console.log(`🌐 Web GUI running on http://localhost:${port} | IPs: ${getAllLocalIPs().join(' | ')}`);
     });
 
     return { app, httpServer };
 }
 
-module.exports = {
-    startWebServer,
-    WEB_PORT
-};
+function shutdown(signal) {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    console.log('🛑 Web server shutting down', signal || '');
+
+    try { httpServer.close(); } catch (e) {}
+    if (ioInstance && typeof ioInstance.close === 'function') {
+        try { ioInstance.close(); } catch (e) { console.error('Error closing Socket.IO:', e); }
+    }
+
+    setTimeout(() => {
+        console.log('🛑 Forcing process exit');
+        try { process.exit(0); } catch (e) {}
+    }, 1000);
+}
+
+module.exports = { startWebServer, WEB_PORT, shutdown };

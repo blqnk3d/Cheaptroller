@@ -27,6 +27,7 @@ class SettingsProvider extends ChangeNotifier {
 
   void setIpAddress(String ip) async {
     _ipAddress = ip;
+    saveLastSuccessfulIp(ip);
     notifyListeners();
   }
 
