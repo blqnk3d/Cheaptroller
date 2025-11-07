@@ -4,11 +4,12 @@
       "target_name": "gamepad",
       "sources": [ "gamepad.cpp" ],
       "include_dirs": [
-        "/mnt/A658E6FB58E6C8DF/Code/Projects/Cheaptroller/Backend_controler/node_modules/node-addon-api"
+        "<!@(node -p \"require('node-addon-api').include\")"
       ],
       "cflags!": [ "-fno-exceptions" ],
       "cflags_cc!": [ "-fno-exceptions" ],
-      "defines": [ "NAPI_CPP_EXCEPTIONS" ]
+      "defines": [ "NAPI_DISABLE_CPP_EXCEPTIONS" ],
+      "dependencies": [ "<!(node -p \"require('node-addon-api').gyp\")" ]
     }
   ]
 }
