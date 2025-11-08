@@ -39,7 +39,14 @@ void create(const Napi::CallbackInfo &info)
     ioctl(fd, UI_SET_KEYBIT, BTN_THUMBL);
     ioctl(fd, UI_SET_KEYBIT, BTN_THUMBR);
 
+    // --- D-Pad keys (digital) ---
+    ioctl(fd, UI_SET_KEYBIT, BTN_DPAD_UP);
+    ioctl(fd, UI_SET_KEYBIT, BTN_DPAD_DOWN);
+    ioctl(fd, UI_SET_KEYBIT, BTN_DPAD_LEFT);
+    ioctl(fd, UI_SET_KEYBIT, BTN_DPAD_RIGHT);
+
     // --- 3. D-Pad (Hat Switch via ABS_HAT0X / ABS_HAT0Y) ---
+    // Keep ABS_HAT bits if you still want hat axis support in addition to digital keys
     ioctl(fd, UI_SET_ABSBIT, ABS_HAT0X);
     ioctl(fd, UI_SET_ABSBIT, ABS_HAT0Y);
 
@@ -192,26 +199,44 @@ void moveDpad(const Napi::CallbackInfo &info)
     int x = info[0].As<Napi::Number>().Int32Value();
     int y = info[1].As<Napi::Number>().Int32Value();
 
-    if (x < -1)
-        x = -1;
-    if (x > 1)
-        x = 1;
-    if (y < -1)
-        y = -1;
-    if (y > 1)
-        y = 1;
+    if (x < -1) x = -1;
+    if (x > 1) x = 1;
+    if (y < -1) y = -1;
+    if (y > 1) y = 1;
 
     struct input_event ie;
     memset(&ie, 0, sizeof(ie));
 
-    ie.type = EV_ABS;
-    ie.code = ABS_HAT0X;
-    ie.value = x;
-    write(fd, &ie, sizeof(ie));
+    auto sendKey = [&](int code, int val) {
+        ie.type = EV_KEY;
+        ie.code = code;
+        ie.value = val;
+        write(fd, &ie, sizeof(ie));
+    };
 
-    ie.code = ABS_HAT0Y;
-    ie.value = y;
-    write(fd, &ie, sizeof(ie));
+    // X axis: -1 = left, 0 = neutral, 1 = right
+    if (x == -1) {
+        sendKey(BTN_DPAD_LEFT, 1);
+        sendKey(BTN_DPAD_RIGHT, 0);
+    } else if (x == 1) {
+        sendKey(BTN_DPAD_LEFT, 0);
+        sendKey(BTN_DPAD_RIGHT, 1);
+    } else {
+        sendKey(BTN_DPAD_LEFT, 0);
+        sendKey(BTN_DPAD_RIGHT, 0);
+    }
+
+    // Y axis: -1 = up, 0 = neutral, 1 = down
+    if (y == -1) {
+        sendKey(BTN_DPAD_UP, 1);
+        sendKey(BTN_DPAD_DOWN, 0);
+    } else if (y == 1) {
+        sendKey(BTN_DPAD_UP, 0);
+        sendKey(BTN_DPAD_DOWN, 1);
+    } else {
+        sendKey(BTN_DPAD_UP, 0);
+        sendKey(BTN_DPAD_DOWN, 0);
+    }
 
     // sync
     ie.type = EV_SYN;

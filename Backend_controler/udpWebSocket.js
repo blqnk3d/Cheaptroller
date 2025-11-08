@@ -35,13 +35,16 @@ const BUTTON_MAP = {
     9: 'RStick'
 };
 
-// D-Pad mapping
+// D-Pad mapping (fixed - match client indices: 10=left,11=right,12=up,13=down)
 const DPAD_MAP = {
-    10: 'up',
-    11: 'down',
-    12: 'left',
-    13: 'right'
+    10: 'left',
+    11: 'right',
+    12: 'up',
+    13: 'down'
 };
+
+// track D-Pad pressed state so simultaneous presses work
+const dpadState = { up: false, down: false, left: false, right: false };
 
 // UDP message handling
 udpServer.on('message', (msg, rinfo) => {
@@ -78,8 +81,18 @@ udpServer.on('message', (msg, rinfo) => {
 
         const dpadDir = DPAD_MAP[idx];
         if (dpadDir) {
-            const capitalized = dpadDir[0].toUpperCase() + dpadDir.slice(1);
-            try { gamepad.pressButton(capitalized, pressed); } catch (err) { logger.error('❌ Error pressing dpad button %s: %o', capitalized, err); }
+            // debug: log the mapping so you can validate incoming indices
+            logger.debug('➡️ DPad index %d -> %s (pressed=%s) from %s', idx, dpadDir, pressed, rinfo.address);
+
+            // update direction state and compute hat axes (-1/0/1)
+            dpadState[dpadDir] = pressed;
+            const x = dpadState.left ? -1 : dpadState.right ? 1 : 0;
+            const y = dpadState.up ? -1 : dpadState.down ? 1 : 0;
+            try {
+                gamepad.moveDpad(x, y);
+            } catch (err) {
+                logger.error('❌ Error moving dpad %s: %o', dpadDir, err);
+            }
             return;
         }
 
