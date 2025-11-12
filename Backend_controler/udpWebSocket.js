@@ -90,7 +90,6 @@ udpServer.on('message', (msg, rinfo) => {
 
         const dpadDir = DPAD_MAP[idx];
         if (dpadDir) {
-            console.log("DPad event:", dpadDir, pressed);
             logger.debug('DPad index %d -> %s (pressed=%s) from %s', idx, dpadDir, pressed, rinfo.address);
 
             // update state and send digital D-Pad via moveDpad(x,y)
