@@ -1,3 +1,10 @@
+#define BTN_DPAD_UP     0x220
+#define BTN_DPAD_DOWN   0x221
+#define BTN_DPAD_LEFT   0x222
+#define BTN_DPAD_RIGHT  0x223
+
+
+
 #include <napi.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -181,6 +188,7 @@ void pressButton(const Napi::CallbackInfo &info)
     write(fd, &ie, sizeof(ie));
 
     // sync
+    memset(&ie, 0, sizeof(ie));
     ie.type = EV_SYN;
     ie.code = SYN_REPORT;
     ie.value = 0;
@@ -188,7 +196,7 @@ void pressButton(const Napi::CallbackInfo &info)
 }
 
 // ----------------------------------------------------
-// 🧭 MOVE DPAD (Hat switch, analog -1/0/1)
+// 🧭 MOVE DPAD (Hat switch, digital via EV_KEY)
 // ----------------------------------------------------
 void moveDpad(const Napi::CallbackInfo &info)
 {
@@ -208,6 +216,7 @@ void moveDpad(const Napi::CallbackInfo &info)
     memset(&ie, 0, sizeof(ie));
 
     auto sendKey = [&](int code, int val) {
+        memset(&ie, 0, sizeof(ie));
         ie.type = EV_KEY;
         ie.code = code;
         ie.value = val;
@@ -239,6 +248,7 @@ void moveDpad(const Napi::CallbackInfo &info)
     }
 
     // sync
+    memset(&ie, 0, sizeof(ie));
     ie.type = EV_SYN;
     ie.code = SYN_REPORT;
     ie.value = 0;
