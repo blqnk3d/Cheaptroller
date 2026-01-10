@@ -191,12 +191,12 @@ class _Xbox_ControllerState extends State<Xbox_Controller> {
                             children: [
                               Column(
                                 children: [
-                                  buildJoystick('left', height * 0.32),
+                                  buildJoystick('left', height * 0.34),
                                   const SizedBox(height: 25),
                                   Padding(
                                     padding: EdgeInsets.only(left: width * 0.15),
                                     child: DPad(
-                                      size: height * 0.3,
+                                      size: height * 0.32,
                                       pressedButtons: _pressedButtons,
                                       onPressed: (index, pressed) => sendButton('left', index, pressed),
                                       scaleFactor: scaleFactor,
@@ -211,7 +211,7 @@ class _Xbox_ControllerState extends State<Xbox_Controller> {
                               Column(
                                 children: [
                                   FaceButtons(
-                                    size: height * 0.34,
+                                    size: height * 0.32,
                                     scaleFactor: scaleFactor,
                                     pressedButtons: _pressedButtons,
                                     onPressed: (index, pressed) => sendButton('right', index, pressed),
@@ -219,7 +219,7 @@ class _Xbox_ControllerState extends State<Xbox_Controller> {
                                   const SizedBox(height: 28),
                                   Padding(
                                     padding: EdgeInsets.only(right: width * 0.15),
-                                    child: buildJoystick('right', height * 0.32),
+                                    child: buildJoystick('right', height * 0.34),
                                   ),
                                 ],
                               ),
