@@ -63,8 +63,9 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: "3.19.0"
+          flutter-version: "3.38.7"
           channel: stable
+
           
       - name: Install frontend dependencies
         run: flutter pub get
