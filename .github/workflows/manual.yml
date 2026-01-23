@@ -1,0 +1,84 @@
+name: Manual Build
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-backend:
+    name: Build Backend
+    runs-on: ubuntu-latest
+    
+    defaults:
+      run:
+        working-directory: ./Backend_controler
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install build tools for node-gyp
+        run: sudo apt-get update && sudo apt-get install -y build-essential python3 python-is-python3
+      
+      - name: Install backend dependencies and build native module
+        run: npm install
+        
+      - name: Install pkg
+        run: npm install -g pkg
+
+      - name: Package application for Linux
+        run: pkg . --targets node18-linux-x64 --output ./dist/cheaptroller-backend
+        
+      - name: Upload backend artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-binary
+          path: Backend_controler/dist/
+
+  build-frontend:
+    name: Build Frontend (APK)
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ./Game_Controler
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '11'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.19.0'
+          channel: 'stable'
+      
+      - name: Correct Dart SDK version
+        working-directory: ./Game_Controler
+        run: sed -i -e 's/sdk: .*/sdk: ">=3.3.0 <4.0.0"/' pubspec.yaml
+      
+      - name: Correct Dart SDK version
+        working-directory: ./Game_Controler
+        run: sed -i -e 's/sdk: .*/sdk: ">=3.3.0 <4.0.0"/' pubspec.yaml
+      
+      - name: Install frontend dependencies
+        run: flutter pub get
+
+      - name: Build APK
+        run: flutter build apk --release
+
+      - name: Upload frontend artifact (APK)
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-apk
+          path: Game_Controler/build/app/outputs/flutter-apk/app-release.apk
