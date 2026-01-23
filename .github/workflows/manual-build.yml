@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-backend:I
+  build-backend:
     name: Build Backend
     runs-on: ubuntu-latest
 
