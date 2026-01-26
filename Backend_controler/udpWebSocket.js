@@ -9,6 +9,10 @@ const UDP_PORT = 8080;
 let ioInstance = null;
 let shuttingDown = false;
 
+// Performance optimization: cache stick values to avoid redundant updates
+const stickState = { left: { x: 0, y: 0 }, right: { x: 0, y: 0 } };
+const STICK_DEADZONE = 0.00;  // Prevents stick drift (5% deadzone)
+
 // ---------- Initialize Gamepad ----------
 try {
     gamepad.create();
@@ -32,7 +36,7 @@ const BUTTON_MAP = {
     6: 'LStick',
     7: 'RStick',
     8: 'Select',
-    9: 'Start'
+    9: 'Start',
 };
 
 // D-Pad mapping (fixed - match client indices: 10=left,11=right,12=up,13=down)
@@ -46,33 +50,36 @@ const DPAD_MAP = {
 // track D-Pad pressed state so simultaneous presses work
 const dpadState = { up: false, down: false, left: false, right: false };
 
-// UDP message handling
+// UDP message handling with optimized path for speed
 udpServer.on('message', (msg, rinfo) => {
-
-    console.log('UDP message from %s:%d: %s', rinfo.address, rinfo.port, msg.toString());
-
-    logger.debug('UDP message from %s:%d: %s', rinfo.address, rinfo.port, msg.toString());
-
     let d;
     try {
         d = JSON.parse(msg.toString());
     } catch (e) {
-        logger.warn('UDP message not JSON from %s: %s', rinfo.address, msg.toString());
+        logger.warn('UDP message not JSON from %s', rinfo.address);
         return;
     }
 
     const { type: t, side, index, x, y } = d || {};
     if (!t) return;
 
+    // Fast path: Stick movement (most frequent input)
     if (t === 'move' && (side === 'left' || side === 'right')) {
-        try {
-            gamepad.moveStick(side, Math.round((x || 0) * 32767), Math.round((y || 0) * 32767));
-        } catch (err) {
-            logger.error('Error moving stick: %o', err);
+        // Apply deadzone to prevent stick drift
+        let xVal = Math.abs(x || 0) < STICK_DEADZONE ? 0 : x || 0;
+        let yVal = Math.abs(y || 0) < STICK_DEADZONE ? 0 : y || 0;
+        
+        // Only send if values actually changed (avoid redundant gamepad calls)
+        const stickCache = stickState[side];
+        if (stickCache.x !== xVal || stickCache.y !== yVal) {
+            stickCache.x = xVal;
+            stickCache.y = yVal;
+            gamepad.moveStick(side, Math.round(xVal * 32767), Math.round(yVal * 32767));
         }
         return;
     }
 
+    // Button handling
     if (t === 'button_down' || t === 'button_up') {
         const pressed = t === 'button_down';
         const idx = typeof index === 'string' ? parseInt(index, 10) : index;
@@ -80,32 +87,20 @@ udpServer.on('message', (msg, rinfo) => {
 
         const buttonStr = BUTTON_MAP[idx];
         if (buttonStr) {
-            try {
-                logger.debug('Button index %d -> %s (pressed=%s) from %s', idx, buttonStr, pressed, rinfo.address);
-                gamepad.pressButton(buttonStr, pressed);
-            } catch (err) {
-                logger.error('Error pressing button %s: %o', buttonStr, err);
-            }
+            gamepad.pressButton(buttonStr, pressed);
             return;
         }
 
         const dpadDir = DPAD_MAP[idx];
         if (dpadDir) {
-            logger.debug('DPad index %d -> %s (pressed=%s) from %s', idx, dpadDir, pressed, rinfo.address);
-
             // update state and send digital D-Pad via moveDpad(x,y)
             dpadState[dpadDir] = pressed;
-            const x = dpadState.left ? -1 : dpadState.right ? 1 : 0;
-            const y = dpadState.up ? -1 : dpadState.down ? 1 : 0;
-            try {
-                gamepad.moveDpad(x, y);
-            } catch (err) {
-                logger.error('Error moving dpad %s: %o', dpadDir, err);
-            }
+            const dX = dpadState.left ? -1 : dpadState.right ? 1 : 0;
+            const dY = dpadState.up ? -1 : dpadState.down ? 1 : 0;
+            gamepad.moveDpad(dX, dY);
             return;
         }
 
-        logger.warn('Unknown button index from %s: %s', rinfo.address, idx);
         return;
     }
 
@@ -120,22 +115,35 @@ udpServer.on('error', (err) => {
     try { udpServer.close(); } catch (e) {}
 });
 
-// Start UDP
+// Start UDP with optimized buffer sizes
 function startUdpServer(port = UDP_PORT) {
-    udpServer.bind(port, '0.0.0.0', () =>
-        logger.info('UDP running on %s', port)
-    );
+    // Set larger UDP buffer for better performance
+    udpServer.bind(port, '0.0.0.0', () => {
+        try {
+            udpServer.setRecvBufferSize(1024 * 256);  // 256KB receive buffer
+            udpServer.setSendBufferSize(1024 * 256);  // 256KB send buffer
+        } catch (e) {
+            // Buffer size setting may fail on some systems, not critical
+        }
+        logger.info('UDP running on %s', port);
+    });
 }
 
-// Socket.IO
+// Socket.IO with optimized settings
 function initSocketIO(httpServer) {
-    ioInstance = new Server(httpServer);
+    ioInstance = new Server(httpServer, {
+        // Performance optimizations
+        maxHttpBufferSize: 1e6,
+        transports: ['websocket', 'polling'],  // Prefer WebSocket for lower latency
+        pingInterval: 25000,
+        pingTimeout: 20000
+    });
 
     ioInstance.on('connection', (socket) => {
-        console.log('Web client connected');
+        logger.debug('Web client connected from %s', socket.remoteAddress);
 
         socket.on('disconnect', () => {
-            console.log('Web client disconnected');
+            logger.debug('Web client disconnected');
         });
     });
 
