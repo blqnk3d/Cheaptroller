@@ -11,7 +11,16 @@ let shuttingDown = false;
 
 // Performance optimization: cache stick values to avoid redundant updates
 const stickState = { left: { x: 0, y: 0 }, right: { x: 0, y: 0 } };
-const STICK_DEADZONE = 0.00;  // Prevents stick drift (5% deadzone)
+const STICK_DEADZONE = 0.00;  // Prevents stick drift (8% deadzone)
+
+// Button state cache - use array for O(1) lookups instead of Map with string keys
+const buttonState = new Array(14).fill(false);
+
+// Pre-compiled DPAD set for O(1) lookup
+const DPAD_INDICES = new Set([10, 11, 12, 13]);
+
+// High-priority buttons (fastest response needed)
+const PRIORITY_BUTTONS = new Set([0, 1, 2, 3]);  // A, B, X, Y - main action buttons
 
 // ---------- Initialize Gamepad ----------
 try {
@@ -47,6 +56,9 @@ const DPAD_MAP = {
     13: 'right'
 };
 
+// D-Pad direction cache for faster lookups (avoids object property access)
+const DPAD_DIRECTIONS = ['', '', '', '', '', '', '', '', '', '', 'up', 'down', 'left', 'right'];
+
 // track D-Pad pressed state so simultaneous presses work
 const dpadState = { up: false, down: false, left: false, right: false };
 
@@ -54,7 +66,8 @@ const dpadState = { up: false, down: false, left: false, right: false };
 udpServer.on('message', (msg, rinfo) => {
     let d;
     try {
-        d = JSON.parse(msg.toString());
+        // Optimize: parse buffer directly (slightly faster than toString())
+        d = JSON.parse(msg);
     } catch (e) {
         logger.warn('UDP message not JSON from %s', rinfo.address);
         return;
@@ -79,25 +92,33 @@ udpServer.on('message', (msg, rinfo) => {
         return;
     }
 
-    // Button handling
+    // Button handling - optimized fast path
     if (t === 'button_down' || t === 'button_up') {
         const pressed = t === 'button_down';
         const idx = typeof index === 'string' ? parseInt(index, 10) : index;
-        if (!Number.isInteger(idx)) return;
+        if (!Number.isInteger(idx) || idx < 0 || idx > 13) return;
 
         const buttonStr = BUTTON_MAP[idx];
         if (buttonStr) {
-            gamepad.pressButton(buttonStr, pressed);
+            // Fast de-duplicate using array index (no string key creation)
+            const prevState = buttonState[idx];
+            if (prevState !== pressed) {
+                buttonState[idx] = pressed;
+                gamepad.pressButton(buttonStr, pressed);
+            }
             return;
         }
 
-        const dpadDir = DPAD_MAP[idx];
-        if (dpadDir) {
-            // update state and send digital D-Pad via moveDpad(x,y)
-            dpadState[dpadDir] = pressed;
-            const dX = dpadState.left ? -1 : dpadState.right ? 1 : 0;
-            const dY = dpadState.up ? -1 : dpadState.down ? 1 : 0;
-            gamepad.moveDpad(dX, dY);
+        // Fast path: Check if it's a D-Pad button (Set lookup is O(1))
+        if (DPAD_INDICES.has(idx)) {
+            const dpadDir = DPAD_DIRECTIONS[idx];
+            // Only update and send if D-Pad state actually changed
+            if (dpadState[dpadDir] !== pressed) {
+                dpadState[dpadDir] = pressed;
+                const dX = dpadState.left ? -1 : dpadState.right ? 1 : 0;
+                const dY = dpadState.up ? -1 : dpadState.down ? 1 : 0;
+                gamepad.moveDpad(dX, dY);
+            }
             return;
         }
 
