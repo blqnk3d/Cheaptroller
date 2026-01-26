@@ -73,6 +73,10 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
 
   void sendUDP(Map<String, dynamic> data) {
     if (!_isSocketReady || socket == null || serverAddress == null) return;
+    
+    // Add timestamp for backend latency measurement
+    data['timestamp'] = DateTime.now().millisecondsSinceEpoch;
+    
     final bytes = utf8.encode(jsonEncode(data));
     socket!.send(bytes, serverAddress!, port);
   }

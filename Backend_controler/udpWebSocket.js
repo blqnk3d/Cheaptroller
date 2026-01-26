@@ -22,6 +22,41 @@ const DPAD_INDICES = new Set([10, 11, 12, 13]);
 // High-priority buttons (fastest response needed)
 const PRIORITY_BUTTONS = new Set([0, 1, 2, 3]);  // A, B, X, Y - main action buttons
 
+// Latency tracking for button press latency test
+const latencyStats = {
+    count: 0,
+    min: Infinity,
+    max: -Infinity,
+    sum: 0,
+    recent: [],  // Keep last 10 latency measurements
+    maxRecentSize: 10
+};
+
+function recordLatency(latencyMs) {
+    latencyStats.count++;
+    latencyStats.min = Math.min(latencyStats.min, latencyMs);
+    latencyStats.max = Math.max(latencyStats.max, latencyMs);
+    latencyStats.sum += latencyMs;
+    
+    // Keep rolling average of last 10 measurements
+    latencyStats.recent.push(latencyMs);
+    if (latencyStats.recent.length > latencyStats.maxRecentSize) {
+        latencyStats.recent.shift();
+    }
+    
+    const avg = latencyStats.sum / latencyStats.count;
+    const recentAvg = latencyStats.recent.reduce((a, b) => a + b, 0) / latencyStats.recent.length;
+    
+    logger.debug(
+        '⏱️  Latency: %dms (min: %dms, max: %dms, avg: %dms, recent avg: %dms)',
+        latencyMs.toFixed(2),
+        latencyStats.min.toFixed(2),
+        latencyStats.max.toFixed(2),
+        avg.toFixed(2),
+        recentAvg.toFixed(2)
+    );
+}
+
 // ---------- Initialize Gamepad ----------
 try {
     gamepad.create();
@@ -68,8 +103,23 @@ udpServer.on('message', (msg, rinfo) => {
         return;
     }
 
-    const { type: t, side, index, x, y } = d || {};
+    const { type: t, side, index, x, y, timestamp } = d || {};
     if (!t) return;
+
+    // Calculate latency if timestamp is provided
+    if (timestamp && typeof timestamp === 'number' && timestamp > 0) {
+        const currentTimeMs = Date.now();
+        const latencyMs = currentTimeMs - timestamp;
+        
+        // Only record latency if it's reasonable (0-1000ms, ignore outliers)
+        if (latencyMs >= 0 && latencyMs < 1000) {
+            recordLatency(latencyMs);
+        } else if (latencyMs < 0) {
+            logger.warn('⏱️  Negative latency detected: %dms (clock skew?)', latencyMs);
+        } else {
+            logger.warn('⏱️  Unusually high latency: %dms', latencyMs);
+        }
+    }
 
     // Fast path: Stick movement (most frequent input)
     if (t === 'move' && (side === 'left' || side === 'right')) {
@@ -199,5 +249,18 @@ module.exports = {
             try { ioInstance.close(); } catch (e) { console.error('Error closing Socket.IO in stopUdpServer:', e); }
         }
         try { gamepad.close(); } catch (e) {}
+    },
+    getLatencyStats: () => {
+        if (latencyStats.count === 0) {
+            return { count: 0, message: 'No latency data collected yet' };
+        }
+        return {
+            count: latencyStats.count,
+            minMs: latencyStats.min.toFixed(2),
+            maxMs: latencyStats.max.toFixed(2),
+            avgMs: (latencyStats.sum / latencyStats.count).toFixed(2),
+            recentAvgMs: (latencyStats.recent.reduce((a, b) => a + b, 0) / latencyStats.recent.length).toFixed(2),
+            recentMeasurements: latencyStats.recent.map(v => parseFloat(v.toFixed(2)))
+        };
     }
 };
