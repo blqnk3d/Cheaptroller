@@ -29,10 +29,10 @@ const BUTTON_MAP = {
     3: 'Y',
     4: 'LB',
     5: 'RB',
-    6: 'Select',
-    7: 'Start',
-    8: 'LStick',
-    9: 'RStick'
+    6: 'LStick',
+    7: 'RStick',
+    8: 'Select',
+    9: 'Start'
 };
 
 // D-Pad mapping (fixed - match client indices: 10=left,11=right,12=up,13=down)
@@ -49,6 +49,7 @@ const dpadState = { up: false, down: false, left: false, right: false };
 // UDP message handling
 udpServer.on('message', (msg, rinfo) => {
 
+    console.log('UDP message from %s:%d: %s', rinfo.address, rinfo.port, msg.toString());
 
     logger.debug('UDP message from %s:%d: %s', rinfo.address, rinfo.port, msg.toString());
 
