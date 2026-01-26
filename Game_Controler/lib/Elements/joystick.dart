@@ -19,33 +19,11 @@ class JoystickWidget extends StatefulWidget {
   _JoystickWidgetState createState() => _JoystickWidgetState();
 }
 
-class _JoystickWidgetState extends State<JoystickWidget>
-    with SingleTickerProviderStateMixin {
+class _JoystickWidgetState extends State<JoystickWidget> {
   Offset knobOffset = Offset.zero;
-
-  late AnimationController _controller;
-  late Animation<Offset> _animation;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 50),  // Reduced for less latency
-    );
-    _animation = Tween<Offset>(begin: Offset.zero, end: Offset.zero)
-        .animate(CurvedAnimation(parent: _controller, curve: Curves.linear))  // Linear is faster
-      ..addListener(() {
-        setState(() {
-          knobOffset = _animation.value;
-          _reportKnobPosition();
-        });
-      });
-  }
 
   @override
   void dispose() {
-    _controller.dispose();
     super.dispose();
   }
 
@@ -74,21 +52,20 @@ class _JoystickWidgetState extends State<JoystickWidget>
   }
 
   void _resetKnob() {
-    _animation = Tween<Offset>(begin: knobOffset, end: Offset.zero).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
-    );
-    _controller.forward(from: 0);
+    // Instant reset - no animation latency
+    setState(() {
+      knobOffset = Offset.zero;
+    });
+    _reportKnobPosition();
   }
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTapDown: (details) {
-        _controller.stop();
         _updateKnob(details.localPosition);
       },
       onPanUpdate: (details) {
-        _controller.stop();
         _updateKnob(details.localPosition);
       },
       onTapUp: (_) => _resetKnob(),
