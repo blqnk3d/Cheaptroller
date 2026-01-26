@@ -11,7 +11,7 @@ let shuttingDown = false;
 
 // Performance optimization: cache stick values to avoid redundant updates
 const stickState = { left: { x: 0, y: 0 }, right: { x: 0, y: 0 } };
-const STICK_DEADZONE = 0.00;  // Prevents stick drift (8% deadzone)
+const STICK_DEADZONE = 0.00;  
 
 // Button state cache - use array for O(1) lookups instead of Map with string keys
 const buttonState = new Array(14).fill(false);
@@ -48,7 +48,6 @@ const BUTTON_MAP = {
     9: 'Start',
 };
 
-// D-Pad mapping (fixed - match client indices: 10=left,11=right,12=up,13=down)
 const DPAD_MAP = {
     10: 'up',
     11: 'down',
@@ -56,17 +55,13 @@ const DPAD_MAP = {
     13: 'right'
 };
 
-// D-Pad direction cache for faster lookups (avoids object property access)
 const DPAD_DIRECTIONS = ['', '', '', '', '', '', '', '', '', '', 'up', 'down', 'left', 'right'];
 
-// track D-Pad pressed state so simultaneous presses work
 const dpadState = { up: false, down: false, left: false, right: false };
 
-// UDP message handling with optimized path for speed
 udpServer.on('message', (msg, rinfo) => {
     let d;
     try {
-        // Optimize: parse buffer directly (slightly faster than toString())
         d = JSON.parse(msg);
     } catch (e) {
         logger.warn('UDP message not JSON from %s', rinfo.address);
