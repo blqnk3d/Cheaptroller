@@ -24,8 +24,7 @@ class FaceButtons extends StatelessWidget {
       onTapDown: (_) => onPressed(index, true),
       onTapUp: (_) => onPressed(index, false),
       onTapCancel: () => onPressed(index, false),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 120),
+      child: Container(
         width: btnSize,
         height: btnSize,
         alignment: Alignment.center,

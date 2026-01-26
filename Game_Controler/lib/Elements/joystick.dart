@@ -31,10 +31,10 @@ class _JoystickWidgetState extends State<JoystickWidget>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 150),
+      duration: const Duration(milliseconds: 50),  // Reduced for less latency
     );
     _animation = Tween<Offset>(begin: Offset.zero, end: Offset.zero)
-        .animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut))
+        .animate(CurvedAnimation(parent: _controller, curve: Curves.linear))  // Linear is faster
       ..addListener(() {
         setState(() {
           knobOffset = _animation.value;

@@ -26,6 +26,7 @@ class _Xbox_ControllerState extends State<Xbox_Controller> {
   RawDatagramSocket? socket;
   InternetAddress? serverAddress;
   bool _isSocketReady = false;
+  bool _didInitSocket = false;
 
   static const int port = 8080;
   final Set<String> _pressedButtons = {};
@@ -44,7 +45,10 @@ class _Xbox_ControllerState extends State<Xbox_Controller> {
     final settings = Provider.of<SettingsProvider>(context, listen: false);
     final newIp = settings.ipAddress;
 
-    if (newIp == serverAddress?.address && socket != null) return;
+    // Only reinitialize if IP changed
+    if (newIp == serverAddress?.address && socket != null && _isSocketReady) {
+      return;
+    }
 
     setState(() => _isSocketReady = false);
     socket?.close();
@@ -54,14 +58,17 @@ class _Xbox_ControllerState extends State<Xbox_Controller> {
       socket = await RawDatagramSocket.bind(InternetAddress.anyIPv4, 0);
       setState(() => _isSocketReady = true);
     } catch (e) {
-      print("Socket error: $e");
+      // Socket initialization failed
     }
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _initSocket();
+    if (!_didInitSocket) {
+      _initSocket();
+      _didInitSocket = true;
+    }
   }
 
   @override
