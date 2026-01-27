@@ -26,9 +26,14 @@ class _Xbox_ControllerState extends State<Xbox_Controller> {
   RawDatagramSocket? socket;
   InternetAddress? serverAddress;
   bool _isSocketReady = false;
+  bool _didInitSocket = false;
 
   static const int port = 8080;
   final Set<String> _pressedButtons = {};
+  
+  // Gesture debouncing - prevent rapid fire updates
+  final Map<String, DateTime> _lastButtonTime = {};
+  static const int _gestureDebounceMs = 16;  // 16ms = 60fps safe
 
   @override
   void initState() {
@@ -44,7 +49,10 @@ class _Xbox_ControllerState extends State<Xbox_Controller> {
     final settings = Provider.of<SettingsProvider>(context, listen: false);
     final newIp = settings.ipAddress;
 
-    if (newIp == serverAddress?.address && socket != null) return;
+    // Only reinitialize if IP changed
+    if (newIp == serverAddress?.address && socket != null && _isSocketReady) {
+      return;
+    }
 
     setState(() => _isSocketReady = false);
     socket?.close();
@@ -54,14 +62,17 @@ class _Xbox_ControllerState extends State<Xbox_Controller> {
       socket = await RawDatagramSocket.bind(InternetAddress.anyIPv4, 0);
       setState(() => _isSocketReady = true);
     } catch (e) {
-      print("Socket error: $e");
+      // Socket initialization failed
     }
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _initSocket();
+    if (!_didInitSocket) {
+      _initSocket();
+      _didInitSocket = true;
+    }
   }
 
   @override
@@ -73,6 +84,10 @@ class _Xbox_ControllerState extends State<Xbox_Controller> {
 
   void sendUDP(Map<String, dynamic> data) {
     if (!_isSocketReady || socket == null || serverAddress == null) return;
+    
+    // Add timestamp for backend latency measurement
+    data['timestamp'] = DateTime.now().millisecondsSinceEpoch;
+    
     final bytes = utf8.encode(jsonEncode(data));
     socket!.send(bytes, serverAddress!, port);
   }
@@ -82,13 +97,22 @@ class _Xbox_ControllerState extends State<Xbox_Controller> {
   }
 
   void sendButton(String side, int index, bool pressed) {
+    final key = "${side}_$index";
+    
+    // Debounce rapid fire gestures
+    final now = DateTime.now();
+    final lastTime = _lastButtonTime[key] ?? DateTime.now().subtract(const Duration(seconds: 1));
+    if (now.difference(lastTime).inMilliseconds < _gestureDebounceMs) {
+      return;  // Skip this update, too soon
+    }
+    _lastButtonTime[key] = now;
+    
     sendUDP({
       "type": pressed ? "button_down" : "button_up",
       "side": side,
       "index": index,
     });
 
-    final key = "${side}_$index";
     setState(() {
       if (pressed) {
         _pressedButtons.add(key);

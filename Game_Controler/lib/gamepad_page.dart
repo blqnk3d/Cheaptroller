@@ -18,8 +18,9 @@ class GamepadPage extends StatefulWidget {
 
 class _GamepadPageState extends State<GamepadPage> {
   RawDatagramSocket? socket;
-  InternetAddress? serverAddress; // Make this nullable
-  bool _isSocketReady = false; // State to track if socket is ready
+  InternetAddress? serverAddress;
+  bool _isSocketReady = false;
+  bool _didInitSocket = false;
 
   static const int port = 8080;
   static const double deadzone = 0.01;
@@ -79,16 +80,18 @@ class _GamepadPageState extends State<GamepadPage> {
       setState(() {
         _isSocketReady = true;
       });
-      print("Socket bound successfully to IP: ${serverAddress?.address}");
     } catch (e) {
-      print("Failed to bind socket: $e");
+      // Socket initialization failed
     }
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _initSocket();
+    if (!_didInitSocket) {
+      _initSocket();
+      _didInitSocket = true;
+    }
   }
 
   @override
@@ -100,9 +103,7 @@ class _GamepadPageState extends State<GamepadPage> {
   }
 
   void sendUDP(Map<String, dynamic> data) {
-
     if (!_isSocketReady || socket == null || serverAddress == null) {
-      print("Socket not ready or address is null, cannot send data.");
       return;
     }
     final bytes = utf8.encode(jsonEncode(data));
@@ -110,8 +111,6 @@ class _GamepadPageState extends State<GamepadPage> {
   }
 
   void sendMove(String side, double x, double y) {
-    print(x);
-    print(y);
     sendUDP({"type": "move", "side": side, "x": x, "y": y});
   }
 

@@ -9,6 +9,54 @@ const UDP_PORT = 8080;
 let ioInstance = null;
 let shuttingDown = false;
 
+// Performance optimization: cache stick values to avoid redundant updates
+const stickState = { left: { x: 0, y: 0 }, right: { x: 0, y: 0 } };
+const STICK_DEADZONE = 0.00;  
+
+// Button state cache - use array for O(1) lookups instead of Map with string keys
+const buttonState = new Array(14).fill(false);
+
+// Pre-compiled DPAD set for O(1) lookup
+const DPAD_INDICES = new Set([10, 11, 12, 13]);
+
+// High-priority buttons (fastest response needed)
+const PRIORITY_BUTTONS = new Set([0, 1, 2, 3]);  // A, B, X, Y - main action buttons
+
+// Latency tracking for button press latency test
+const latencyStats = {
+    count: 0,
+    min: Infinity,
+    max: -Infinity,
+    sum: 0,
+    recent: [],  // Keep last 10 latency measurements
+    maxRecentSize: 10
+};
+
+function recordLatency(latencyMs) {
+    latencyStats.count++;
+    latencyStats.min = Math.min(latencyStats.min, latencyMs);
+    latencyStats.max = Math.max(latencyStats.max, latencyMs);
+    latencyStats.sum += latencyMs;
+    
+    // Keep rolling average of last 10 measurements
+    latencyStats.recent.push(latencyMs);
+    if (latencyStats.recent.length > latencyStats.maxRecentSize) {
+        latencyStats.recent.shift();
+    }
+    
+    const avg = latencyStats.sum / latencyStats.count;
+    const recentAvg = latencyStats.recent.reduce((a, b) => a + b, 0) / latencyStats.recent.length;
+    
+    logger.debug(
+        '⏱️  Latency: %dms (min: %dms, max: %dms, avg: %dms, recent avg: %dms)',
+        latencyMs.toFixed(2),
+        latencyStats.min.toFixed(2),
+        latencyStats.max.toFixed(2),
+        avg.toFixed(2),
+        recentAvg.toFixed(2)
+    );
+}
+
 // ---------- Initialize Gamepad ----------
 try {
     gamepad.create();
@@ -29,13 +77,12 @@ const BUTTON_MAP = {
     3: 'Y',
     4: 'LB',
     5: 'RB',
-    6: 'Select',
-    7: 'Start',
-    8: 'LStick',
-    9: 'RStick'
+    6: 'LStick',
+    7: 'RStick',
+    8: 'Select',
+    9: 'Start',
 };
 
-// D-Pad mapping (fixed - match client indices: 10=left,11=right,12=up,13=down)
 const DPAD_MAP = {
     10: 'up',
     11: 'down',
@@ -43,68 +90,84 @@ const DPAD_MAP = {
     13: 'right'
 };
 
-// track D-Pad pressed state so simultaneous presses work
+const DPAD_DIRECTIONS = ['', '', '', '', '', '', '', '', '', '', 'up', 'down', 'left', 'right'];
+
 const dpadState = { up: false, down: false, left: false, right: false };
 
-// UDP message handling
 udpServer.on('message', (msg, rinfo) => {
-
-
-    logger.debug('UDP message from %s:%d: %s', rinfo.address, rinfo.port, msg.toString());
-
     let d;
     try {
-        d = JSON.parse(msg.toString());
+        d = JSON.parse(msg);
     } catch (e) {
-        logger.warn('UDP message not JSON from %s: %s', rinfo.address, msg.toString());
+        logger.warn('UDP message not JSON from %s', rinfo.address);
         return;
     }
 
-    const { type: t, side, index, x, y } = d || {};
+    const { type: t, side, index, x, y, timestamp } = d || {};
     if (!t) return;
 
+    // Calculate latency if timestamp is provided
+    if (timestamp && typeof timestamp === 'number' && timestamp > 0) {
+        const currentTimeMs = Date.now();
+        const latencyMs = currentTimeMs - timestamp;
+        
+        // Only record latency if it's reasonable (0-1000ms, ignore outliers)
+
+        if (latencyMs >= 0 && latencyMs < 1000) {
+            recordLatency(latencyMs);
+        } else if (latencyMs < 0) {
+            logger.warn('  Negative latency detected: %dms ', latencyMs);
+        } else {
+            logger.warn('  Unusually high latency: %dms', latencyMs);
+        }
+    }
+
+    // Fast path: Stick movement (most frequent input)
     if (t === 'move' && (side === 'left' || side === 'right')) {
-        try {
-            gamepad.moveStick(side, Math.round((x || 0) * 32767), Math.round((y || 0) * 32767));
-        } catch (err) {
-            logger.error('Error moving stick: %o', err);
+        // Apply deadzone to prevent stick drift
+        let xVal = Math.abs(x || 0) < STICK_DEADZONE ? 0 : x || 0;
+        let yVal = Math.abs(y || 0) < STICK_DEADZONE ? 0 : y || 0;
+        
+        // Only send if values actually changed (avoid redundant gamepad calls)
+        const stickCache = stickState[side];
+        if (stickCache.x !== xVal || stickCache.y !== yVal) {
+            stickCache.x = xVal;
+            stickCache.y = yVal;
+            gamepad.moveStick(side, Math.round(xVal * 32767), Math.round(yVal * 32767));
         }
         return;
     }
 
+    // Button handling - optimized fast path
     if (t === 'button_down' || t === 'button_up') {
         const pressed = t === 'button_down';
         const idx = typeof index === 'string' ? parseInt(index, 10) : index;
-        if (!Number.isInteger(idx)) return;
+        if (!Number.isInteger(idx) || idx < 0 || idx > 13) return;
 
         const buttonStr = BUTTON_MAP[idx];
         if (buttonStr) {
-            try {
-                logger.debug('Button index %d -> %s (pressed=%s) from %s', idx, buttonStr, pressed, rinfo.address);
+            // Fast de-duplicate using array index (no string key creation)
+            const prevState = buttonState[idx];
+            if (prevState !== pressed) {
+                buttonState[idx] = pressed;
                 gamepad.pressButton(buttonStr, pressed);
-            } catch (err) {
-                logger.error('Error pressing button %s: %o', buttonStr, err);
             }
             return;
         }
 
-        const dpadDir = DPAD_MAP[idx];
-        if (dpadDir) {
-            logger.debug('DPad index %d -> %s (pressed=%s) from %s', idx, dpadDir, pressed, rinfo.address);
-
-            // update state and send digital D-Pad via moveDpad(x,y)
-            dpadState[dpadDir] = pressed;
-            const x = dpadState.left ? -1 : dpadState.right ? 1 : 0;
-            const y = dpadState.up ? -1 : dpadState.down ? 1 : 0;
-            try {
-                gamepad.moveDpad(x, y);
-            } catch (err) {
-                logger.error('Error moving dpad %s: %o', dpadDir, err);
+        // Fast path: Check if it's a D-Pad button (Set lookup is O(1))
+        if (DPAD_INDICES.has(idx)) {
+            const dpadDir = DPAD_DIRECTIONS[idx];
+            // Only update and send if D-Pad state actually changed
+            if (dpadState[dpadDir] !== pressed) {
+                dpadState[dpadDir] = pressed;
+                const dX = dpadState.left ? -1 : dpadState.right ? 1 : 0;
+                const dY = dpadState.up ? -1 : dpadState.down ? 1 : 0;
+                gamepad.moveDpad(dX, dY);
             }
             return;
         }
 
-        logger.warn('Unknown button index from %s: %s', rinfo.address, idx);
         return;
     }
 
@@ -119,22 +182,35 @@ udpServer.on('error', (err) => {
     try { udpServer.close(); } catch (e) {}
 });
 
-// Start UDP
+// Start UDP with optimized buffer sizes
 function startUdpServer(port = UDP_PORT) {
-    udpServer.bind(port, '0.0.0.0', () =>
-        logger.info('UDP running on %s', port)
-    );
+    // Set larger UDP buffer for better performance
+    udpServer.bind(port, '0.0.0.0', () => {
+        try {
+            udpServer.setRecvBufferSize(1024 * 256);  // 256KB receive buffer
+            udpServer.setSendBufferSize(1024 * 256);  // 256KB send buffer
+        } catch (e) {
+            // Buffer size setting may fail on some systems, not critical
+        }
+        logger.info('UDP running on %s', port);
+    });
 }
 
-// Socket.IO
+// Socket.IO with optimized settings
 function initSocketIO(httpServer) {
-    ioInstance = new Server(httpServer);
+    ioInstance = new Server(httpServer, {
+        // Performance optimizations
+        maxHttpBufferSize: 1e6,
+        transports: ['websocket', 'polling'],  // Prefer WebSocket for lower latency
+        pingInterval: 25000,
+        pingTimeout: 20000
+    });
 
     ioInstance.on('connection', (socket) => {
-        console.log('Web client connected');
+        logger.debug('Web client connected from %s', socket.remoteAddress);
 
         socket.on('disconnect', () => {
-            console.log('Web client disconnected');
+            logger.debug('Web client disconnected');
         });
     });
 
@@ -174,5 +250,18 @@ module.exports = {
             try { ioInstance.close(); } catch (e) { console.error('Error closing Socket.IO in stopUdpServer:', e); }
         }
         try { gamepad.close(); } catch (e) {}
+    },
+    getLatencyStats: () => {
+        if (latencyStats.count === 0) {
+            return { count: 0, message: 'No latency data collected yet' };
+        }
+        return {
+            count: latencyStats.count,
+            minMs: latencyStats.min.toFixed(2),
+            maxMs: latencyStats.max.toFixed(2),
+            avgMs: (latencyStats.sum / latencyStats.count).toFixed(2),
+            recentAvgMs: (latencyStats.recent.reduce((a, b) => a + b, 0) / latencyStats.recent.length).toFixed(2),
+            recentMeasurements: latencyStats.recent.map(v => parseFloat(v.toFixed(2)))
+        };
     }
 };

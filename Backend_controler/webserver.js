@@ -2,7 +2,7 @@ const express = require('express');
 const http = require('http');
 const path = require('path');
 const { getAllLocalIPs } = require('./utils');
-const { initSocketIO } = require('./udpWebSocket');
+const { initSocketIO, getLatencyStats } = require('./udpWebSocket');
 
 const WEB_PORT = 3000;
 
@@ -20,6 +20,11 @@ function startWebServer(port = WEB_PORT) {
     // API endpoint to get local IPs
     app.get('/api/myip', (req, res) => {
         res.json({ ips: getAllLocalIPs(), port: WEB_PORT });
+    });
+
+    // API endpoint to get latency statistics
+    app.get('/api/latency', (req, res) => {
+        res.json(getLatencyStats());
     });
 
     // Shutdown endpoint
