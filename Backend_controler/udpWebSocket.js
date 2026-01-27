@@ -112,12 +112,13 @@ udpServer.on('message', (msg, rinfo) => {
         const latencyMs = currentTimeMs - timestamp;
         
         // Only record latency if it's reasonable (0-1000ms, ignore outliers)
+
         if (latencyMs >= 0 && latencyMs < 1000) {
             recordLatency(latencyMs);
         } else if (latencyMs < 0) {
-            logger.warn('⏱️  Negative latency detected: %dms (clock skew?)', latencyMs);
+            logger.warn('  Negative latency detected: %dms ', latencyMs);
         } else {
-            logger.warn('⏱️  Unusually high latency: %dms', latencyMs);
+            logger.warn('  Unusually high latency: %dms', latencyMs);
         }
     }
 
