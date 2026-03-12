@@ -21,9 +21,14 @@ subprojects {
         sourceCompatibility = "17"
         targetCompatibility = "17"
     }
+    // Corrected Kotlin configuration for compiler options
     tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
-        kotlinOptions {
-            jvmTarget = "17"
+        kotlin { // Start the Kotlin configuration block
+            compilerOptions { // Use the new compilerOptions DSL
+                jvmTarget = "17" // Ensure this JVM target is appropriate for your project
+                // If you had other options inside kotlinOptions, migrate them here.
+                // For example, freeCompilerArgs can be added within compilerOptions {}
+            }
         }
     }
 }
