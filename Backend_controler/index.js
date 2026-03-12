@@ -2,10 +2,16 @@ const { startUdpServer, UDP_PORT, stopUdpServer } = require('./udpWebSocket');
 const { startWebServer, WEB_PORT } = require('./webserver');
 const logger = require('./logger');
 const { exec } = require('child_process');
+const { Bonjour } = require('bonjour-service');
 
 // Start Servers
 startUdpServer(UDP_PORT);
 const { httpServer } = startWebServer(WEB_PORT);
+
+// mDNS Advertisement
+const bonjour = new Bonjour();
+bonjour.publish({ name: 'Cheaptroller PC', type: 'http', port: WEB_PORT });
+logger.info(`mDNS advertising 'Cheaptroller PC' on port ${WEB_PORT}`);
 
 // Funktion zum Browser-Öffnen
 function openBrowser(url) {

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:game_controler/Controller_Layouts/Playstation_Controller.dart';
-import 'package:game_controler/Controller_Layouts/XBox_Controller.dart.dart';
+import 'package:game_controler/Controller_Layouts/XBox_Controller.dart';
 import 'package:game_controler/Elements/qrScanner.dart';
 import 'package:game_controler/style.dart';
 import 'package:provider/provider.dart';
@@ -64,6 +64,46 @@ class _StartPageState extends State<StartPage> with RouteAware {
     }
   }
 
+  Future<void> _settingsDialog() async {
+    final settings = context.read<SettingsProvider>();
+    await showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          backgroundColor: Colors.grey[850],
+          title: const Text('Settings', style: TextStyle(color: Colors.white)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SwitchListTile(
+                title: const Text('Haptic Feedback', style: TextStyle(color: Colors.white)),
+                value: settings.hapticFeedbackEnabled,
+                onChanged: (val) {
+                  settings.setHapticFeedback(val);
+                  setState(() {});
+                },
+              ),
+              SwitchListTile(
+                title: const Text('Gyro Steering', style: TextStyle(color: Colors.white)),
+                value: settings.gyroSteeringEnabled,
+                onChanged: (val) {
+                  settings.setGyroSteering(val);
+                  setState(() {});
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Close', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _editIpDialog() async {
     final settings = context.read<SettingsProvider>();
     final newIpController = TextEditingController(text: settings.ipAddress);
@@ -117,10 +157,20 @@ class _StartPageState extends State<StartPage> with RouteAware {
 
     return Scaffold(
       backgroundColor: Colors.grey[900],
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings, color: Colors.white),
+            onPressed: _settingsDialog,
+          ),
+        ],
+      ),
       body: SafeArea(
         child: Center(
           child: Padding(
-            padding: const EdgeInsets.all(24.0),
+            padding: const EdgeInsets.symmetric(horizontal: 24.0),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [

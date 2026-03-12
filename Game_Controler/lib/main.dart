@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:game_controler/Controller_Layouts/Playstation_Controller.dart';
-import 'package:game_controler/Controller_Layouts/XBox_Controller.dart.dart';
+import 'package:game_controler/Controller_Layouts/XBox_Controller.dart';
 import 'package:game_controler/Settings/settingsProvider.dart';
 import 'package:provider/provider.dart';
 
