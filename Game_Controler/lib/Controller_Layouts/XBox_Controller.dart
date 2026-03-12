@@ -12,6 +12,9 @@ import 'package:game_controler/Settings/settingsProvider.dart';
 import 'package:provider/provider.dart';
 import '../style.dart';
 
+import 'package:sensors_plus/sensors_plus.dart';
+import 'package:vibration/vibration.dart';
+
 class Xbox_Controller extends StatefulWidget {
   static const routeName = '/xbox_controller';
   const Xbox_Controller({super.key});
@@ -35,6 +38,9 @@ class _Xbox_ControllerState extends State<Xbox_Controller> {
   final Map<String, DateTime> _lastButtonTime = {};
   static const int _gestureDebounceMs = 16;  // 16ms = 60fps safe
 
+  StreamSubscription<AccelerometerEvent>? _accelerometerSubscription;
+  double _lastGyroX = 0;
+
   @override
   void initState() {
     super.initState();
@@ -43,6 +49,24 @@ class _Xbox_ControllerState extends State<Xbox_Controller> {
       DeviceOrientation.landscapeRight,
     ]);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    _initGyro();
+  }
+
+  void _initGyro() {
+    final settings = Provider.of<SettingsProvider>(context, listen: false);
+    if (settings.gyroSteeringEnabled) {
+      _accelerometerSubscription = accelerometerEvents.listen((AccelerometerEvent event) {
+        // In landscape, we use Y-axis for left/right steering (tilt)
+        // Adjust sensitivity and range
+        double steering = (event.y / 7.0).clamp(-1.0, 1.0);
+        
+        // Only send if it changed significantly to reduce UDP traffic
+        if ((steering - _lastGyroX).abs() > 0.02) {
+          _lastGyroX = steering;
+          sendMove('left', steering, 0); // Steering usually maps to Left Stick X
+        }
+      });
+    }
   }
 
   Future<void> _initSocket() async {
@@ -78,6 +102,7 @@ class _Xbox_ControllerState extends State<Xbox_Controller> {
   @override
   void dispose() {
     socket?.close();
+    _accelerometerSubscription?.cancel();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     super.dispose();
   }
@@ -107,6 +132,14 @@ class _Xbox_ControllerState extends State<Xbox_Controller> {
     }
     _lastButtonTime[key] = now;
     
+    // Haptic Feedback
+    if (pressed) {
+      final settings = Provider.of<SettingsProvider>(context, listen: false);
+      if (settings.hapticFeedbackEnabled) {
+        Vibration.vibrate(duration: 15, amplitude: 128);
+      }
+    }
+
     sendUDP({
       "type": pressed ? "button_down" : "button_up",
       "side": side,

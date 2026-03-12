@@ -8,6 +8,9 @@ class SettingsProvider extends ChangeNotifier {
   String _deadzone = '0.001';
   String _smoothFactor = '0.5';
   String _moveThrottle = '1';
+  
+  bool _hapticFeedbackEnabled = true;
+  bool _gyroSteeringEnabled = false;
 
   bool get isDarkMode => _isDarkMode;
   String get ipAddress => _ipAddress;
@@ -15,9 +18,11 @@ class SettingsProvider extends ChangeNotifier {
   String get deadzone => _deadzone;
   String get smoothFactor => _smoothFactor;
   String get moveThrottle => _moveThrottle;
+  bool get hapticFeedbackEnabled => _hapticFeedbackEnabled;
+  bool get gyroSteeringEnabled => _gyroSteeringEnabled;
 
   SettingsProvider() {
-    _loadSavedIp();
+    _loadSettings();
   }
 
   void setDarkMode(bool value) {
@@ -38,13 +43,26 @@ class SettingsProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> _loadSavedIp() async {
+  void setHapticFeedback(bool value) async {
+    _hapticFeedbackEnabled = value;
     final prefs = await SharedPreferences.getInstance();
-    final savedIp = prefs.getString('last_ip');
-    if (savedIp != null) {
-      _ipAddress = savedIp;
-      notifyListeners();
-    }
+    await prefs.setBool('haptic_feedback', value);
+    notifyListeners();
+  }
+
+  void setGyroSteering(bool value) async {
+    _gyroSteeringEnabled = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('gyro_steering', value);
+    notifyListeners();
+  }
+
+  Future<void> _loadSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    _ipAddress = prefs.getString('last_ip') ?? '';
+    _hapticFeedbackEnabled = prefs.getBool('haptic_feedback') ?? true;
+    _gyroSteeringEnabled = prefs.getBool('gyro_steering') ?? false;
+    notifyListeners();
   }
 
   void setMaxSpeed(String val) {
