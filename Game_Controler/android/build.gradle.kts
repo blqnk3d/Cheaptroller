@@ -23,12 +23,10 @@ subprojects {
     }
     // Corrected Kotlin configuration for compiler options
     tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
-        kotlin { // Start the Kotlin configuration block
-            compilerOptions { // Use the new compilerOptions DSL
-                jvmTarget = "17" // Ensure this JVM target is appropriate for your project
-                // If you had other options inside kotlinOptions, migrate them here.
-                // For example, freeCompilerArgs can be added within compilerOptions {}
-            }
+        compilerOptions { // Use the new compilerOptions DSL
+            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17) // Ensure this JVM target is appropriate for your project
+            // If you had other options inside kotlinOptions, migrate them here.
+            // For example, freeCompilerArgs can be added within compilerOptions {}
         }
     }
 }
