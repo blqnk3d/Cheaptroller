@@ -1,8 +1,8 @@
-const { startUdpServer, UDP_PORT, stopUdpServer } = require('./udpWebSocket');
-const { startWebServer, WEB_PORT } = require('./webserver');
-const logger = require('./logger');
-const { exec } = require('child_process');
-const { Bonjour } = require('bonjour-service');
+const { startUdpServer, UDP_PORT, stopUdpServer } = require("./udpWebSocket");
+const { startWebServer, WEB_PORT } = require("./webserver");
+const logger = require("./logger");
+const { exec } = require("child_process");
+const { Bonjour } = require("bonjour-service");
 
 // Start Servers
 startUdpServer(UDP_PORT);
@@ -10,7 +10,7 @@ const { httpServer } = startWebServer(WEB_PORT);
 
 // mDNS Advertisement
 const bonjour = new Bonjour();
-bonjour.publish({ name: 'Cheaptroller PC', type: 'http', port: WEB_PORT });
+bonjour.publish({ name: "Cheaptroller PC", type: "http", port: WEB_PORT });
 logger.info(`mDNS advertising 'Cheaptroller PC' on port ${WEB_PORT}`);
 
 // Funktion zum Browser-Öffnen
@@ -18,16 +18,16 @@ function openBrowser(url) {
   const platform = process.platform;
 
   try {
-    if (platform === 'win32') {
+    if (platform === "win32") {
       exec(`start ${url}`);
-    } else if (platform === 'darwin') {
+    } else if (platform === "darwin") {
       exec(`open ${url}`);
-    } else if (platform === 'linux') {
+    } else if (platform === "linux") {
       exec(`xdg-open ${url}`);
     }
     logger.info(`Opening browser at ${url}`);
   } catch (err) {
-    logger.error('Failed to open browser:', err);
+    logger.error("Failed to open browser:", err);
   }
 }
 
@@ -39,15 +39,22 @@ setTimeout(() => {
 
 // Graceful Shutdown
 function gracefulShutdown(signal) {
-  logger.info('SIG received, shutting down: %s', signal);
-  try { if (tickTimer) clearTimeout(tickTimer); } catch (e) {}
-  try { if (httpServer && typeof httpServer.close === 'function') httpServer.close(); } catch (e) {}
-  try { stopUdpServer(); } catch (e) {}
+  logger.info("SIG received, shutting down: %s", signal);
+  try {
+    if (tickTimer) clearTimeout(tickTimer);
+  } catch (e) {}
+  try {
+    if (httpServer && typeof httpServer.close === "function")
+      httpServer.close();
+  } catch (e) {}
+  try {
+    stopUdpServer();
+  } catch (e) {}
   setTimeout(() => {
-    logger.info('Forcing process exit');
+    logger.info("Forcing process exit");
     process.exit(0);
   }, 1000);
 }
 
-process.on('SIGINT', () => gracefulShutdown('SIGINT'));
-process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on("SIGINT", () => gracefulShutdown("SIGINT"));
+process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
