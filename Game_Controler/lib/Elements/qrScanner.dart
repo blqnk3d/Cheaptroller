@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:qr_code_scanner_plus/qr_code_scanner_plus.dart';
 
 class QRScannerPage extends StatefulWidget {
@@ -29,8 +30,14 @@ class _QRScannerPageState extends State<QRScannerPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (defaultTargetPlatform == TargetPlatform.linux) {
+      return const Center(
+        child: Text('QR scanning is not supported on Linux'),
+      );
+    }
+
     return Scaffold(
-      appBar: AppBar(title: Text('Scan QR Code')),
+      appBar: AppBar(title: const Text('Scan QR Code')),
       body: QRView(key: qrKey, onQRViewCreated: _onQRViewCreated),
     );
   }
