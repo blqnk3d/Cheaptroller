@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:game_controler/Controller_Layouts/Playstation_Controller.dart';
 import 'package:game_controler/Controller_Layouts/XBox_Controller.dart';
+import 'package:game_controler/Controller_Layouts/Custom_Controller.dart';
+import 'package:game_controler/Controller_Layouts/Custom_Controller_Editor.dart';
 import 'package:game_controler/Elements/qrScanner.dart';
 import 'package:game_controler/style.dart';
 import 'package:provider/provider.dart';
@@ -50,6 +52,14 @@ class _StartPageState extends State<StartPage> with RouteAware {
 
   void _xbox_controller(String ip) {
     Navigator.pushNamed(context, Xbox_Controller.routeName, arguments: ip);
+  }
+
+  void _custom_controller(String ip) {
+    Navigator.pushNamed(context, CustomController.routeName, arguments: ip);
+  }
+
+  void _layout_editor() {
+    Navigator.pushNamed(context, CustomControllerEditor.routeName);
   }
 
   void _scanQRCode() async {
@@ -168,81 +178,127 @@ class _StartPageState extends State<StartPage> with RouteAware {
         ],
       ),
       body: SafeArea(
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                GestureDetector(
-                  onTap: _editIpDialog,
-                  child: Text(
-                    ip.isEmpty ? '(Keine IP gesetzt)' : ip,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(color: Colors.white, fontSize: 18),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                ElevatedButton.icon(
-                  onPressed: _scanQRCode,
-                  icon: const Icon(Icons.qr_code_scanner),
-                  label: const Text('Scan QR code to connect'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.background,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 16,
-                      horizontal: 24,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+        child: SingleChildScrollView(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  GestureDetector(
+                    onTap: _editIpDialog,
+                    child: Text(
+                      ip.isEmpty ? '(Keine IP gesetzt)' : ip,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Colors.white, fontSize: 18),
                     ),
                   ),
-                ),
-                const SizedBox(height: 30),
-                ElevatedButton(
-                  onPressed:
-                      ip.isEmpty ? null : () => _playstation_controller(ip),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.cardBackground,
-                    foregroundColor: AppColors.textPrimary,
-                    disabledBackgroundColor: AppColors.buttonDisabled,
-                    disabledForegroundColor: Colors.grey[500],
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 16,
-                      horizontal: 24,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: const Text(
-                    'Start Playstation Controller',
-                    style: AppTextStyles.body,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                ElevatedButton(
-                  onPressed: ip.isEmpty ? null : () => _xbox_controller(ip),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.cardBackground,
-                    foregroundColor: AppColors.textPrimary,
-                    disabledBackgroundColor: AppColors.buttonDisabled,
-                    disabledForegroundColor: Colors.grey[500],
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 16,
-                      horizontal: 24,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                  const SizedBox(height: 12),
+                  ElevatedButton.icon(
+                    onPressed: _scanQRCode,
+                    icon: const Icon(Icons.qr_code_scanner),
+                    label: const Text('Scan QR code to connect'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.background,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 16,
+                        horizontal: 24,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                   ),
-                  child: const Text(
-                    'Start XBox Controller',
-                    style: AppTextStyles.body,
+                  const SizedBox(height: 30),
+                  ElevatedButton(
+                    onPressed:
+                        ip.isEmpty ? null : () => _playstation_controller(ip),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.cardBackground,
+                      foregroundColor: AppColors.textPrimary,
+                      disabledBackgroundColor: AppColors.buttonDisabled,
+                      disabledForegroundColor: Colors.grey[500],
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 16,
+                        horizontal: 24,
+                      ),
+                      minimumSize: const Size(double.infinity, 50),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text(
+                      'Start Playstation Controller',
+                      style: AppTextStyles.body,
+                    ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 10),
+                  ElevatedButton(
+                    onPressed: ip.isEmpty ? null : () => _xbox_controller(ip),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.cardBackground,
+                      foregroundColor: AppColors.textPrimary,
+                      disabledBackgroundColor: AppColors.buttonDisabled,
+                      disabledForegroundColor: Colors.grey[500],
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 16,
+                        horizontal: 24,
+                      ),
+                      minimumSize: const Size(double.infinity, 50),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text(
+                      'Start XBox Controller',
+                      style: AppTextStyles.body,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  ElevatedButton(
+                    onPressed: ip.isEmpty ? null : () => _custom_controller(ip),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.cardBackground,
+                      foregroundColor: AppColors.textPrimary,
+                      disabledBackgroundColor: AppColors.buttonDisabled,
+                      disabledForegroundColor: Colors.grey[500],
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 16,
+                        horizontal: 24,
+                      ),
+                      minimumSize: const Size(double.infinity, 50),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text(
+                      'Start Custom Controller',
+                      style: AppTextStyles.body,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  ElevatedButton(
+                    onPressed: _layout_editor,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blueGrey[800],
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 16,
+                        horizontal: 24,
+                      ),
+                      minimumSize: const Size(double.infinity, 50),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text(
+                      'Edit Custom Layout',
+                      style: AppTextStyles.body,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
