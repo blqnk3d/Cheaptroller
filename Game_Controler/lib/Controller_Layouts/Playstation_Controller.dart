@@ -331,7 +331,6 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
                   ),
                 ),
               ),
-      ),
-    );
+      );
   }
 }

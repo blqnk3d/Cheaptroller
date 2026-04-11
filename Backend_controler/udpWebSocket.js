@@ -1,4 +1,5 @@
 // udpWebSocket.js
+const msgpack = require("msgpack-lite");
 const dgram = require("dgram");
 const { Server } = require("socket.io");
 const gamepad = require("./gamepad.node");
