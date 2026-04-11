@@ -8,6 +8,7 @@ class SettingsProvider extends ChangeNotifier {
   
   bool _hapticFeedbackEnabled = true;
   bool _gyroSteeringEnabled = false;
+  bool _showConnectionStatus = false;
 
   CustomLayout _customLayout = CustomLayout.defaultLayout();
 
@@ -15,6 +16,7 @@ class SettingsProvider extends ChangeNotifier {
   String get ipAddress => _ipAddress;
   bool get hapticFeedbackEnabled => _hapticFeedbackEnabled;
   bool get gyroSteeringEnabled => _gyroSteeringEnabled;
+  bool get showConnectionStatus => _showConnectionStatus;
   CustomLayout get customLayout => _customLayout;
 
   SettingsProvider() {
@@ -53,6 +55,13 @@ class SettingsProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setShowConnectionStatus(bool value) async {
+    _showConnectionStatus = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('show_connection_status', value);
+    notifyListeners();
+  }
+
   Future<void> saveCustomLayout(CustomLayout layout) async {
     _customLayout = layout;
     final prefs = await SharedPreferences.getInstance();
@@ -65,6 +74,7 @@ class SettingsProvider extends ChangeNotifier {
     _ipAddress = prefs.getString('last_ip') ?? '';
     _hapticFeedbackEnabled = prefs.getBool('haptic_feedback') ?? true;
     _gyroSteeringEnabled = prefs.getBool('gyro_steering') ?? false;
+    _showConnectionStatus = prefs.getBool('show_connection_status') ?? false;
 
     final customLayoutJson = prefs.getString('custom_layout') ?? '';
     if (customLayoutJson.isNotEmpty) {
@@ -73,4 +83,4 @@ class SettingsProvider extends ChangeNotifier {
 
     notifyListeners();
   }
-}
+  }

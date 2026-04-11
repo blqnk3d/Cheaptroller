@@ -203,13 +203,14 @@ class _Xbox_ControllerState extends State<Xbox_Controller> {
   }
 
   Widget _buildTopBumpers(double width) {
+    final settings = Provider.of<SettingsProvider>(context);
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: width * 0, vertical: 6),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           _topButton('LB', 4, 'left'),
-          _buildStatusIndicator(),
+          if (settings.showConnectionStatus) _buildStatusIndicator(),
           _topButton('RB', 5, 'right'),
         ],
       ),

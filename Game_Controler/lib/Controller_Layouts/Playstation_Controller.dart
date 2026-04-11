@@ -155,13 +155,14 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
   }
 
   Widget _buildTopBumpers(double width) {
+    final settings = Provider.of<SettingsProvider>(context);
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 0, vertical: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           _topButton('LB', 4, 'left'),
-          _buildStatusIndicator(),
+          if (settings.showConnectionStatus) _buildStatusIndicator(),
           _topButton('RB', 5, 'right'),
         ],
       ),

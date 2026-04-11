@@ -101,6 +101,14 @@ class _StartPageState extends State<StartPage> with RouteAware {
                   setState(() {});
                 },
               ),
+              SwitchListTile(
+                title: const Text('Show Connection Status', style: TextStyle(color: Colors.white)),
+                value: settings.showConnectionStatus,
+                onChanged: (val) {
+                  settings.setShowConnectionStatus(val);
+                  setState(() {});
+                },
+              ),
             ],
           ),
           actions: [
