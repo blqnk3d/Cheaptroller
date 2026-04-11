@@ -95,51 +95,53 @@ class _CustomControllerEditorState extends State<CustomControllerEditor> {
       body: Stack(
         children: [
           // Canvas
-          GestureDetector(
-            onTap: () {
-              setState(() => _selectedElement = null);
-              if (!_showAppBar) _toggleAppBar(true);
-            },
-            onVerticalDragUpdate: (details) {
-              // Swipe down from top detection
-              if (details.primaryDelta! > 10 && details.globalPosition.dy < 50) {
-                _toggleAppBar(true);
-              }
-            },
-            child: Container(
-              color: Colors.transparent,
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  return Stack(
-                    children: [
-                      // Grid background
-                      Positioned.fill(
-                        child: CustomPaint(
-                          painter: GridPainter(gridSize: gridSize),
-                        ),
-                      ),
-                      ..._layout.elements.map((element) {
-                        return Positioned(
-                          left: element.x * constraints.maxWidth,
-                          top: element.y * constraints.maxHeight,
-                          child: _DraggableElement(
-                            element: element,
-                            isSelected: _selectedElement == element,
-                            constraints: constraints,
-                            gridSize: gridSize,
-                            onTap: () {
-                              setState(() => _selectedElement = element);
-                              _toggleAppBar(true);
-                            },
-                            onMove: () {
-                              setState(() {}); // Update UI during move
-                            },
+          SafeArea(
+            child: GestureDetector(
+              onTap: () {
+                setState(() => _selectedElement = null);
+                if (!_showAppBar) _toggleAppBar(true);
+              },
+              onVerticalDragUpdate: (details) {
+                // Swipe down from top detection
+                if (details.primaryDelta! > 10 && details.globalPosition.dy < 30) {
+                  _toggleAppBar(true);
+                }
+              },
+              child: Container(
+                color: Colors.transparent,
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    return Stack(
+                      children: [
+                        // Grid background
+                        Positioned.fill(
+                          child: CustomPaint(
+                            painter: GridPainter(gridSize: gridSize),
                           ),
-                        );
-                      }).toList(),
-                    ],
-                  );
-                },
+                        ),
+                        ..._layout.elements.map((element) {
+                          return Positioned(
+                            left: element.x * constraints.maxWidth,
+                            top: element.y * constraints.maxHeight,
+                            child: _DraggableElement(
+                              element: element,
+                              isSelected: _selectedElement == element,
+                              constraints: constraints,
+                              gridSize: gridSize,
+                              onTap: () {
+                                setState(() => _selectedElement = element);
+                                _toggleAppBar(true);
+                              },
+                              onMove: () {
+                                setState(() {}); // Update UI during move
+                              },
+                            ),
+                          );
+                        }).toList(),
+                      ],
+                    );
+                  },
+                ),
               ),
             ),
           ),
