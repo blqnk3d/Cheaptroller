@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -13,6 +12,7 @@ import 'package:game_controler/Models/custom_layout_model.dart';
 import 'package:game_controler/Elements/status_indicator.dart';
 import '../style.dart';
 import 'package:vibration/vibration.dart';
+import 'package:msgpack_dart/msgpack_dart.dart' as msgpack;
 
 class CustomController extends StatefulWidget {
   static const routeName = '/custom_controller';
@@ -29,6 +29,10 @@ class _CustomControllerState extends State<CustomController> {
   static const int port = 8080;
   final Set<String> _pressedButtons = {};
 
+  // UDP Queue for non-blocking sends
+  final StreamController<List<int>> _udpQueue = StreamController<List<int>>();
+  StreamSubscription? _queueSubscription;
+
   @override
   void initState() {
     super.initState();
@@ -37,6 +41,15 @@ class _CustomControllerState extends State<CustomController> {
       DeviceOrientation.landscapeRight,
     ]);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    _initQueue();
+  }
+
+  void _initQueue() {
+    _queueSubscription = _udpQueue.stream.listen((bytes) {
+      if (_isSocketReady && socket != null && serverAddress != null) {
+        socket!.send(bytes, serverAddress!, port);
+      }
+    });
   }
 
   Future<void> _initSocket() async {
@@ -53,7 +66,7 @@ class _CustomControllerState extends State<CustomController> {
       socket = await RawDatagramSocket.bind(InternetAddress.anyIPv4, 0);
       setState(() => _isSocketReady = true);
     } catch (e) {
-      print("Socket error: $e");
+      // ignore
     }
   }
 
@@ -66,6 +79,8 @@ class _CustomControllerState extends State<CustomController> {
   @override
   void dispose() {
     socket?.close();
+    _queueSubscription?.cancel();
+    _udpQueue.close();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.portraitUp,
@@ -77,10 +92,21 @@ class _CustomControllerState extends State<CustomController> {
   }
 
   void sendUDP(Map<String, dynamic> data) {
-    if (!_isSocketReady || socket == null || serverAddress == null) return;
-    data['timestamp'] = DateTime.now().millisecondsSinceEpoch;
-    final bytes = utf8.encode(jsonEncode(data));
-    socket!.send(bytes, serverAddress!, port);
+    if (!_isSocketReady) return;
+    
+    // Use binary keys for reduced payload
+    final Map<String, dynamic> optimizedData = {
+      't': data['type'],
+      'ts': DateTime.now().millisecondsSinceEpoch,
+    };
+
+    if (data.containsKey('side')) optimizedData['s'] = data['side'];
+    if (data.containsKey('index')) optimizedData['i'] = data['index'];
+    if (data.containsKey('x')) optimizedData['x'] = data['x'];
+    if (data.containsKey('y')) optimizedData['y'] = data['y'];
+
+    final bytes = msgpack.serialize(optimizedData);
+    _udpQueue.add(bytes);
   }
 
   void sendMove(String side, double x, double y) {

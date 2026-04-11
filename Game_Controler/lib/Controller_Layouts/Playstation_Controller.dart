@@ -1,6 +1,5 @@
 // lib/Playstation_controler.dart
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -15,6 +14,7 @@ import '../style.dart';
 
 import 'package:sensors_plus/sensors_plus.dart';
 import 'package:vibration/vibration.dart';
+import 'package:msgpack_dart/msgpack_dart.dart' as msgpack;
 
 class Playstation_Controller extends StatefulWidget {
   static const routeName = '/playstation_controller';
@@ -37,6 +37,10 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
   StreamSubscription<AccelerometerEvent>? _accelerometerSubscription;
   double _lastGyroX = 0;
 
+  // UDP Queue for non-blocking sends
+  final StreamController<List<int>> _udpQueue = StreamController<List<int>>();
+  StreamSubscription? _queueSubscription;
+
   @override
   void initState() {
     super.initState();
@@ -45,7 +49,16 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
       DeviceOrientation.landscapeRight,
     ]);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    _initQueue();
     _initGyro();
+  }
+
+  void _initQueue() {
+    _queueSubscription = _udpQueue.stream.listen((bytes) {
+      if (_isSocketReady && socket != null && serverAddress != null) {
+        socket!.send(bytes, serverAddress!, port);
+      }
+    });
   }
 
   void _initGyro() {
@@ -54,8 +67,9 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
       _accelerometerSubscription = accelerometerEvents.listen((AccelerometerEvent event) {
         // In landscape, we use Y-axis for left/right steering (tilt)
         double steering = (event.y / 7.0).clamp(-1.0, 1.0);
-        
-        if ((steering - _lastGyroX).abs() > 0.02) {
+
+        // Send only if it changed enough to matter (0.015 threshold)
+        if ((steering - _lastGyroX).abs() > 0.015) {
           _lastGyroX = steering;
           sendMove('left', steering, 0);
         }
@@ -77,7 +91,7 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
       socket = await RawDatagramSocket.bind(InternetAddress.anyIPv4, 0);
       setState(() => _isSocketReady = true);
     } catch (e) {
-      print("Socket error: $e");
+      // ignore
     }
   }
 
@@ -91,6 +105,8 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
   void dispose() {
     socket?.close();
     _accelerometerSubscription?.cancel();
+    _queueSubscription?.cancel();
+    _udpQueue.close();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.portraitUp,
@@ -102,13 +118,21 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
   }
 
   void sendUDP(Map<String, dynamic> data) {
-    if (!_isSocketReady || socket == null || serverAddress == null) return;
-    
-    // Add timestamp for backend latency measurement
-    data['timestamp'] = DateTime.now().millisecondsSinceEpoch;
-    
-    final bytes = utf8.encode(jsonEncode(data));
-    socket!.send(bytes, serverAddress!, port);
+    if (!_isSocketReady) return;
+
+    // Use binary keys for reduced payload
+    final Map<String, dynamic> optimizedData = {
+      't': data['type'],
+      'ts': DateTime.now().millisecondsSinceEpoch,
+    };
+
+    if (data.containsKey('side')) optimizedData['s'] = data['side'];
+    if (data.containsKey('index')) optimizedData['i'] = data['index'];
+    if (data.containsKey('x')) optimizedData['x'] = data['x'];
+    if (data.containsKey('y')) optimizedData['y'] = data['y'];
+
+    final bytes = msgpack.serialize(optimizedData);
+    _udpQueue.add(bytes);
   }
 
   void sendMove(String side, double x, double y) {
@@ -306,6 +330,7 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
                     ],
                   ),
                 ),
+              ),
       ),
     );
   }

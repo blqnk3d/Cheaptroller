@@ -81,13 +81,26 @@ udpServer.on("message", (msg, rinfo) => {
 
   let d;
   try {
-    d = JSON.parse(msg);
+    // Check if message is MessagePack or JSON
+    if (msg[0] === 0x7B) {
+      // Starts with '{' -> JSON
+      d = JSON.parse(msg);
+    } else {
+      d = msgpack.decode(msg);
+    }
   } catch (e) {
-    logger.warn("UDP message not JSON from %s", rinfo.address);
+    logger.warn("UDP message decode failed from %s: %s", rinfo.address, e.message);
     return;
   }
 
-  const { type: t, side, index, x, y, timestamp } = d || {};
+  const {
+    type: t = d.t,
+    side = d.s,
+    index = d.i,
+    x = d.x,
+    y = d.y,
+    timestamp: ts = d.ts,
+  } = d || {};
   if (!t) return;
 
   // 1. Identify Client
@@ -125,6 +138,7 @@ udpServer.on("message", (msg, rinfo) => {
   client.lastSeen = Date.now();
 
   // 3. Handle Latency
+  const timestamp = ts || d.timestamp;
   if (timestamp && typeof timestamp === "number" && timestamp > 0) {
     const latencyMs = Date.now() - timestamp;
     if (latencyMs >= 0 && latencyMs < 2000) {
