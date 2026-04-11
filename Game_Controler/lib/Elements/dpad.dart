@@ -79,9 +79,13 @@ class _DPadState extends State<DPad> {
       height: btnSize,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: isPressed ? Colors.greenAccent.withOpacity(0.6) : AppColors.cardBackground,
-        borderRadius: BorderRadius.circular(6 * widget.scaleFactor),
-        border: Border.all(color: AppColors.textPrimary, width: 1.3 * widget.scaleFactor),
+        color: isPressed ? Colors.greenAccent.withValues(alpha: 0.4) : AppColors.cardBackground,
+        borderRadius: BorderRadius.circular(8 * widget.scaleFactor),
+        border: Border.all(color: isPressed ? Colors.greenAccent : Colors.white10, width: 1.5 * widget.scaleFactor),
+        boxShadow: [
+          if (isPressed)
+            BoxShadow(color: Colors.greenAccent.withValues(alpha: 0.2), blurRadius: 10, spreadRadius: 1),
+        ],
       ),
       child: Icon(
         dir == 'up'
@@ -91,8 +95,8 @@ class _DPadState extends State<DPad> {
                 : dir == 'left'
                     ? Icons.keyboard_arrow_left
                     : Icons.keyboard_arrow_right,
-        color: AppColors.textPrimary,
-        size: btnSize * 0.6,
+        color: isPressed ? Colors.greenAccent : AppColors.textPrimary,
+        size: btnSize * 0.7,
       ),
     );
   }

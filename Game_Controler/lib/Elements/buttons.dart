@@ -29,16 +29,20 @@ class FaceButtons extends StatelessWidget {
         height: btnSize,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: isPressed ? color.withOpacity(0.7) : AppColors.cardBackground,
+          color: isPressed ? color.withValues(alpha: 0.4) : AppColors.cardBackground,
           shape: BoxShape.circle,
-          border: Border.all(color: color, width: 2 * scaleFactor),
+          border: Border.all(color: isPressed ? color : color.withValues(alpha: 0.3), width: 2 * scaleFactor),
+          boxShadow: [
+            if (isPressed)
+              BoxShadow(color: color.withValues(alpha: 0.2), blurRadius: 10, spreadRadius: 1),
+          ],
         ),
         child: Text(
           label,
-          style: AppTextStyles.body.copyWith(
-            fontSize: btnSize * 0.4,
+          style: TextStyle(
+            fontSize: btnSize * 0.45,
             fontWeight: FontWeight.bold,
-            color: color,
+            color: isPressed ? Colors.white : color,
           ),
         ),
       ),

@@ -365,7 +365,7 @@ class _DraggableElementState extends State<_DraggableElement> {
             width: widget.isSelected ? 3 : 1,
           ),
           borderRadius: BorderRadius.circular(12),
-          color: widget.isSelected ? Colors.blue.withOpacity(0.2) : Colors.white10,
+          color: widget.isSelected ? Colors.blue.withValues(alpha: 0.2) : Colors.white10,
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -412,7 +412,7 @@ class GridPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = Colors.white.withOpacity(0.05)
+      ..color = Colors.white.withValues(alpha: 0.05)
       ..strokeWidth = 1;
 
     for (double i = 0; i <= 1.0; i += gridSize) {

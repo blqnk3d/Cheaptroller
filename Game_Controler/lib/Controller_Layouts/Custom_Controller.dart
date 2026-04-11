@@ -10,6 +10,7 @@ import 'package:game_controler/Elements/middlebutton.dart';
 import 'package:provider/provider.dart';
 import 'package:game_controler/Settings/settingsProvider.dart';
 import 'package:game_controler/Models/custom_layout_model.dart';
+import 'package:game_controler/Elements/status_indicator.dart';
 import '../style.dart';
 import 'package:vibration/vibration.dart';
 
@@ -115,13 +116,24 @@ class _CustomControllerState extends State<CustomController> {
         child: _isSocketReady
             ? LayoutBuilder(builder: (context, constraints) {
                 return Stack(
-                  children: layout.elements.map((element) {
-                    return Positioned(
-                      left: element.x * constraints.maxWidth,
-                      top: element.y * constraints.maxHeight,
-                      child: _buildElement(element),
-                    );
-                  }).toList(),
+                  children: [
+                    if (settings.showConnectionStatus)
+                      Positioned(
+                        top: 10,
+                        left: 0,
+                        right: 0,
+                        child: Center(
+                          child: ConnectionStatusIndicator(isConnected: _isSocketReady),
+                        ),
+                      ),
+                    ...layout.elements.map((element) {
+                      return Positioned(
+                        left: element.x * constraints.maxWidth,
+                        top: element.y * constraints.maxHeight,
+                        child: _buildElement(element),
+                      );
+                    }).toList(),
+                  ],
                 );
               })
             : const Center(child: CircularProgressIndicator()),
@@ -172,7 +184,7 @@ class _CustomControllerState extends State<CustomController> {
         width: element.size,
         height: element.size * 0.4,
         decoration: BoxDecoration(
-          color: isPressed ? Colors.greenAccent.withOpacity(0.5) : AppColors.cardBackground,
+          color: isPressed ? Colors.greenAccent.withValues(alpha: 0.5) : AppColors.cardBackground,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(color: AppColors.textPrimary, width: 1.5),
         ),

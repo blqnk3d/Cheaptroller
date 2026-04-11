@@ -8,6 +8,7 @@ import 'package:game_controler/Elements/buttons.dart';
 import 'package:game_controler/Elements/dpad.dart';
 import 'package:game_controler/Elements/joystick.dart';
 import 'package:game_controler/Elements/middlebutton.dart';
+import 'package:game_controler/Elements/status_indicator.dart';
 import 'package:game_controler/Settings/settingsProvider.dart';
 import 'package:provider/provider.dart';
 import '../style.dart';
@@ -190,7 +191,7 @@ class _Xbox_ControllerState extends State<Xbox_Controller> {
       child: Container(
         padding: EdgeInsets.symmetric(vertical: 6 * scale, horizontal: 14 * scale),
         decoration: BoxDecoration(
-          color: isPressed ? Colors.greenAccent.withOpacity(0.5) : AppColors.cardBackground,
+          color: isPressed ? Colors.greenAccent.withValues(alpha: 0.5) : AppColors.cardBackground,
           borderRadius: BorderRadius.circular(10 * scale),
           border: Border.all(color: AppColors.textPrimary, width: 1.5 * scale),
         ),
@@ -210,46 +211,8 @@ class _Xbox_ControllerState extends State<Xbox_Controller> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           _topButton('LB', 4, 'left'),
-          if (settings.showConnectionStatus) _buildStatusIndicator(),
+          if (settings.showConnectionStatus) ConnectionStatusIndicator(isConnected: _isSocketReady),
           _topButton('RB', 5, 'right'),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatusIndicator() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.black45,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: _isSocketReady ? Colors.green : Colors.red, width: 1),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 8,
-            height: 8,
-            decoration: BoxDecoration(
-              color: _isSocketReady ? Colors.green : Colors.red,
-              shape: BoxShape.circle,
-              boxShadow: [
-                if (_isSocketReady)
-                  BoxShadow(color: Colors.green.withOpacity(0.5), blurRadius: 4, spreadRadius: 1)
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            _isSocketReady ? "CONNECTED" : "OFFLINE",
-            style: TextStyle(
-              color: _isSocketReady ? Colors.green : Colors.red,
-              fontSize: 10,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.2,
-            ),
-          ),
         ],
       ),
     );

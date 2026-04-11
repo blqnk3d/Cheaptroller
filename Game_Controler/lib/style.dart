@@ -2,17 +2,18 @@ import 'package:flutter/material.dart';
 
 // ----------------- COLORS -----------------
 class AppColors {
-  static const background = Color(0xFF212121); // dark grey
-  static const cardBackground = Color(0xFF2A2A2A); // slightly lighter grey
+  static const background = Color(0xFF0F0F0F); // deeper black
+  static const cardBackground = Color(0xFF1A1A1A); // card grey
 
-  static const joyStick = Color.fromARGB(255, 88, 88, 88);
+  static const joyStick = Color(0xFF333333);
+  static const joyStickGlow = Colors.blueAccent;
 
-  static const buttonDisabled = Color.fromARGB(255, 56, 56, 56);
+  static const buttonDisabled = Color(0xFF1A1A1A);
   
   static const textPrimary = Colors.white;
-  static const textSecondary = Colors.grey;
+  static const textSecondary = Colors.white38;
 
-  static const icon = Colors.white;
+  static const icon = Colors.white70;
 }
 
 // ----------------- TEXT STYLES -----------------
