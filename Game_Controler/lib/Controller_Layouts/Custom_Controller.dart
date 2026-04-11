@@ -154,8 +154,34 @@ class _CustomControllerState extends State<CustomController> {
           pressedButtons: _pressedButtons,
           onPressed: (index, pressed) => sendButton(index < 9 ? 'left' : 'right', index, pressed),
         );
-      default:
-        return const SizedBox();
+      case ControlType.bumper:
+        return _buildBumper(element);
     }
+  }
+
+  Widget _buildBumper(ControlElement element) {
+    final index = element.side == 'left' ? 4 : 5;
+    final key = "${element.side}_$index";
+    final isPressed = _pressedButtons.contains(key);
+
+    return GestureDetector(
+      onTapDown: (_) => sendButton(element.side, index, true),
+      onTapUp: (_) => sendButton(element.side, index, false),
+      onTapCancel: () => sendButton(element.side, index, false),
+      child: Container(
+        width: element.size,
+        height: element.size * 0.4,
+        decoration: BoxDecoration(
+          color: isPressed ? Colors.greenAccent.withOpacity(0.5) : AppColors.cardBackground,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: AppColors.textPrimary, width: 1.5),
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          element.side == 'left' ? 'LB' : 'RB',
+          style: AppTextStyles.body.copyWith(fontSize: 14),
+        ),
+      ),
+    );
   }
 }

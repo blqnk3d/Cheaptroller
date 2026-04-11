@@ -15,11 +15,16 @@ class CustomControllerEditor extends StatefulWidget {
 class _CustomControllerEditorState extends State<CustomControllerEditor> {
   late CustomLayout _layout;
   ControlElement? _selectedElement;
+  static const double gridSize = 0.02; // 2% of screen per grid cell
 
   @override
   void initState() {
     super.initState();
     _layout = context.read<SettingsProvider>().customLayout;
+  }
+
+  double _snap(double value) {
+    return (value / gridSize).round() * gridSize;
   }
 
   void _saveLayout() {
@@ -35,7 +40,7 @@ class _CustomControllerEditorState extends State<CustomControllerEditor> {
         type: type,
         x: 0.5,
         y: 0.5,
-        size: 100,
+        size: 150,
         side: 'left',
       ));
     });
@@ -65,43 +70,58 @@ class _CustomControllerEditorState extends State<CustomControllerEditor> {
           GestureDetector(
             onTap: () => setState(() => _selectedElement = null),
             child: Container(
-              color: Colors.black12,
+              color: Colors.black26,
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   return Stack(
-                    children: _layout.elements.map((element) {
-                      return Positioned(
-                        left: element.x * constraints.maxWidth,
-                        top: element.y * constraints.maxHeight,
-                        child: GestureDetector(
-                          onPanUpdate: (details) {
-                            setState(() {
-                              element.x += details.delta.dx / constraints.maxWidth;
-                              element.y += details.delta.dy / constraints.maxHeight;
-                              _selectedElement = element;
-                            });
-                          },
-                          onTap: () => setState(() => _selectedElement = element),
-                          child: Container(
-                            width: element.size,
-                            height: element.size,
-                            decoration: BoxDecoration(
-                              border: Border.all(
-                                color: _selectedElement == element ? Colors.blue : Colors.white38,
-                                width: 2,
+                    children: [
+                      // Grid background
+                      Positioned.fill(
+                        child: CustomPaint(
+                          painter: GridPainter(gridSize: gridSize),
+                        ),
+                      ),
+                      ..._layout.elements.map((element) {
+                        return Positioned(
+                          left: element.x * constraints.maxWidth,
+                          top: element.y * constraints.maxHeight,
+                          child: GestureDetector(
+                            onPanUpdate: (details) {
+                              setState(() {
+                                element.x = _snap(element.x + details.delta.dx / constraints.maxWidth);
+                                element.y = _snap(element.y + details.delta.dy / constraints.maxHeight);
+                                _selectedElement = element;
+                              });
+                            },
+                            onTap: () => setState(() => _selectedElement = element),
+                            child: Container(
+                              width: element.size,
+                              height: element.size,
+                              decoration: BoxDecoration(
+                                border: Border.all(
+                                  color: _selectedElement == element ? Colors.blue : Colors.white38,
+                                  width: 2,
+                                ),
+                                color: Colors.white10,
                               ),
-                              color: Colors.white10,
-                            ),
-                            child: Center(
-                              child: Text(
-                                element.type.name,
-                                style: const TextStyle(color: Colors.white, fontSize: 10),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    "${element.type.name} (${element.side == 'left' ? 'L' : 'R'})",
+                                    style: const TextStyle(color: Colors.white, fontSize: 10),
+                                  ),
+                                  Text(
+                                    "Size: ${element.size.toInt()}",
+                                    style: const TextStyle(color: Colors.blueAccent, fontSize: 9, fontWeight: FontWeight.bold),
+                                  ),
+                                ],
                               ),
                             ),
                           ),
-                        ),
-                      );
-                    }).toList(),
+                        );
+                      }).toList(),
+                    ],
                   );
                 },
               ),
@@ -120,8 +140,17 @@ class _CustomControllerEditorState extends State<CustomControllerEditor> {
                 _toolButton(Icons.apps, () => _addElement(ControlType.dpad), 'DPad'),
                 _toolButton(Icons.grid_view, () => _addElement(ControlType.faceButtons), 'Face'),
                 _toolButton(Icons.more_horiz, () => _addElement(ControlType.middleButtons), 'Mid'),
-                if (_selectedElement != null)
+                _toolButton(Icons.rectangle_outlined, () => _addElement(ControlType.bumper), 'Bump'),
+                if (_selectedElement != null) ...[
+                  _toolButton(
+                    _selectedElement!.side == 'left' ? Icons.chevron_left : Icons.chevron_right,
+                    () => setState(() {
+                      _selectedElement!.side = _selectedElement!.side == 'left' ? 'right' : 'left';
+                    }),
+                    'Side: ${_selectedElement!.side.toUpperCase()}',
+                  ),
                   _toolButton(Icons.delete, () => _removeElement(_selectedElement!), 'Del', color: Colors.red),
+                ],
               ],
             ),
           ),
@@ -137,7 +166,9 @@ class _CustomControllerEditorState extends State<CustomControllerEditor> {
                 child: Slider(
                   value: _selectedElement!.size,
                   min: 50,
-                  max: 300,
+                  max: 400,
+                  divisions: 35, // Steps of 10 ( (400-50) / 10 = 35 )
+                  label: _selectedElement!.size.toInt().toString(),
                   onChanged: (val) => setState(() => _selectedElement!.size = val),
                 ),
               ),
@@ -156,4 +187,24 @@ class _CustomControllerEditorState extends State<CustomControllerEditor> {
       ],
     );
   }
+}
+
+class GridPainter extends CustomPainter {
+  final double gridSize;
+  GridPainter({required this.gridSize});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white.withOpacity(0.05)
+      ..strokeWidth = 1;
+
+    for (double i = 0; i <= 1.0; i += gridSize) {
+      canvas.drawLine(Offset(i * size.width, 0), Offset(i * size.width, size.height), paint);
+      canvas.drawLine(Offset(0, i * size.height), Offset(size.width, i * size.height), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

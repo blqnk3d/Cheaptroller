@@ -7,7 +7,7 @@ class ControlElement {
   double x;
   double y;
   double size;
-  final String side; // 'left' or 'right'
+  String side; // 'left' or 'right'
   final String label;
 
   ControlElement({
