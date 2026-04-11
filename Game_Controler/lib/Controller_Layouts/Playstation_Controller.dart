@@ -159,7 +159,49 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
       padding: EdgeInsets.symmetric(horizontal: 0, vertical: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [_topButton('LB', 4, 'left'), _topButton('RB', 5, 'right')],
+        children: [
+          _topButton('LB', 4, 'left'),
+          _buildStatusIndicator(),
+          _topButton('RB', 5, 'right'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatusIndicator() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.black45,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: _isSocketReady ? Colors.green : Colors.red, width: 1),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(
+              color: _isSocketReady ? Colors.green : Colors.red,
+              shape: BoxShape.circle,
+              boxShadow: [
+                if (_isSocketReady)
+                  BoxShadow(color: Colors.green.withOpacity(0.5), blurRadius: 4, spreadRadius: 1)
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            _isSocketReady ? "CONNECTED" : "OFFLINE",
+            style: TextStyle(
+              color: _isSocketReady ? Colors.green : Colors.red,
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.2,
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -5,10 +5,6 @@ import '../Models/custom_layout_model.dart';
 class SettingsProvider extends ChangeNotifier {
   bool _isDarkMode = false;
   String _ipAddress = '';
-  String _maxSpeed = '50';
-  String _deadzone = '0.001';
-  String _smoothFactor = '0.5';
-  String _moveThrottle = '1';
   
   bool _hapticFeedbackEnabled = true;
   bool _gyroSteeringEnabled = false;
@@ -17,10 +13,6 @@ class SettingsProvider extends ChangeNotifier {
 
   bool get isDarkMode => _isDarkMode;
   String get ipAddress => _ipAddress;
-  String get maxSpeed => _maxSpeed;
-  String get deadzone => _deadzone;
-  String get smoothFactor => _smoothFactor;
-  String get moveThrottle => _moveThrottle;
   bool get hapticFeedbackEnabled => _hapticFeedbackEnabled;
   bool get gyroSteeringEnabled => _gyroSteeringEnabled;
   CustomLayout get customLayout => _customLayout;
@@ -79,26 +71,6 @@ class SettingsProvider extends ChangeNotifier {
       _customLayout = CustomLayout.fromJson(customLayoutJson);
     }
 
-    notifyListeners();
-  }
-
-  void setMaxSpeed(String val) {
-    _maxSpeed = val;
-    notifyListeners();
-  }
-
-  void setDeadzone(String val) {
-    _deadzone = val;
-    notifyListeners();
-  }
-
-  void setSmoothFactor(String val) {
-    _smoothFactor = val;
-    notifyListeners();
-  }
-
-  void setMoveThrottle(String val) {
-    _moveThrottle = val;
     notifyListeners();
   }
 }

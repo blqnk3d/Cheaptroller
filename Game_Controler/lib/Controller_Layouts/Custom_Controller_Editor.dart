@@ -58,10 +58,6 @@ class _CustomControllerEditorState extends State<CustomControllerEditor> {
     if (show) _startAppBarTimer();
   }
 
-  double _snap(double value) {
-    return (value / gridSize).round() * gridSize;
-  }
-
   void _saveLayout() {
     context.read<SettingsProvider>().saveCustomLayout(_layout);
     ScaffoldMessenger.of(context).showSnackBar(
@@ -175,6 +171,31 @@ class _CustomControllerEditorState extends State<CustomControllerEditor> {
                       ),
                     ),
                     IconButton(
+                      icon: const Icon(Icons.refresh, color: Colors.orangeAccent),
+                      onPressed: () {
+                        showDialog(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            title: const Text('Reset Layout?'),
+                            content: const Text('All your custom elements will be replaced by the default layout.'),
+                            actions: [
+                              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+                              TextButton(
+                                onPressed: () {
+                                  setState(() {
+                                    _layout = CustomLayout.defaultLayout();
+                                    _selectedElement = null;
+                                  });
+                                  Navigator.pop(ctx);
+                                },
+                                child: const Text('Reset', style: TextStyle(color: Colors.red)),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                    IconButton(
                       icon: const Icon(Icons.save, color: Colors.greenAccent),
                       onPressed: _saveLayout,
                     ),
@@ -242,7 +263,16 @@ class _CustomControllerEditorState extends State<CustomControllerEditor> {
                     max: 400,
                     divisions: 35,
                     label: _selectedElement!.size.toInt().toString(),
-                    onChanged: (val) => setState(() => _selectedElement!.size = val),
+                    onChanged: (val) {
+                      setState(() {
+                        _selectedElement!.size = val;
+                        // Ensure size increase doesn't push it off-screen
+                        final maxX = 1.0 - (_selectedElement!.size / (context.size?.width ?? 1));
+                        final maxY = 1.0 - (_selectedElement!.size / (context.size?.height ?? 1));
+                        _selectedElement!.x = _selectedElement!.x.clamp(0.0, maxX > 0 ? maxX : 0.0);
+                        _selectedElement!.y = _selectedElement!.y.clamp(0.0, maxY > 0 ? maxY : 0.0);
+                      });
+                    },
                   ),
                 ),
               ),
@@ -315,10 +345,13 @@ class _DraggableElementState extends State<_DraggableElement> {
         widget.onMove();
       },
       onPanEnd: (_) {
-        // Snap to grid on release
+        // Snap to grid on release AND clamp to ensure it stays on screen
         setState(() {
-          widget.element.x = _snap(widget.element.x);
-          widget.element.y = _snap(widget.element.y);
+          final maxX = (1.0 - (widget.element.size / widget.constraints.maxWidth)).clamp(0.0, 1.0);
+          final maxY = (1.0 - (widget.element.size / widget.constraints.maxHeight)).clamp(0.0, 1.0);
+          
+          widget.element.x = _snap(widget.element.x).clamp(0.0, maxX);
+          widget.element.y = _snap(widget.element.y).clamp(0.0, maxY);
         });
         widget.onMove();
       },

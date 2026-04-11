@@ -51,5 +51,4 @@ Inputs are sent as JSON-encoded strings over UDP to the configured IP on port `8
 ## TODOs / Roadmap
 - [ ] Implement "WASD to Left Click" and "MouseMove to Right Click" logic.
 - [ ] Improve UI layout for better ergonomics.
-- [ ] Replace numeric inputs in Settings with Sliders.
 - [ ] Enhance IP address input (e.g., auto-discovery or better validation).
