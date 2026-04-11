@@ -24,11 +24,18 @@ class MiddleButtons extends StatelessWidget {
       child: Container(
         padding: EdgeInsets.symmetric(vertical: 5 * scaleFactor, horizontal: 12 * scaleFactor),
         decoration: BoxDecoration(
-          color: isPressed ? Colors.greenAccent.withOpacity(0.5) : AppColors.cardBackground,
+          color: isPressed ? Colors.white24 : AppColors.cardBackground,
           borderRadius: BorderRadius.circular(10 * scaleFactor),
-          border: Border.all(color: AppColors.textPrimary, width: 1.5 * scaleFactor),
+          border: Border.all(color: isPressed ? Colors.white : Colors.white10, width: 1.5 * scaleFactor),
         ),
-        child: Text(label, style: AppTextStyles.body.copyWith(fontSize: 13 * scaleFactor)),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isPressed ? Colors.white : Colors.white60,
+            fontSize: 13 * scaleFactor,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ),
     );
   }
@@ -39,18 +46,24 @@ class MiddleButtons extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         _topButton('View', 8, 'left'),
-        SizedBox(width: 12 * scaleFactor),
+        SizedBox(width: 20 * scaleFactor),
         Container(
-          width: 35 * scaleFactor,
-          height: 35 * scaleFactor,
+          width: 45 * scaleFactor,
+          height: 45 * scaleFactor,
           decoration: BoxDecoration(
             color: AppColors.cardBackground,
             shape: BoxShape.circle,
-            border: Border.all(color: Colors.green, width: 2 * scaleFactor),
+            border: Border.all(color: Colors.white10, width: 2 * scaleFactor),
+            boxShadow: [
+              BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 10),
+            ],
+            gradient: RadialGradient(
+              colors: [AppColors.cardBackground, Colors.black.withValues(alpha: 0.5)],
+            ),
           ),
-          child: Icon(Icons.home, color: Colors.green, size: 20 * scaleFactor),
+          child: Icon(Icons.home, color: Colors.greenAccent, size: 24 * scaleFactor),
         ),
-        SizedBox(width: 12 * scaleFactor),
+        SizedBox(width: 20 * scaleFactor),
         _topButton('Menu', 9, 'right'),
       ],
     );

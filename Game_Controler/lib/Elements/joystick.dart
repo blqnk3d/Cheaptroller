@@ -74,24 +74,58 @@ class _JoystickWidgetState extends State<JoystickWidget> {
       child: Stack(
         alignment: Alignment.center,
         children: [
-          // Base
+          // Outer Glow / Ring
           Container(
             width: widget.size * widget.scaleFactor,
             height: widget.size * widget.scaleFactor,
             decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white10, width: 2),
+              boxShadow: [
+                BoxShadow(color: Colors.black.withValues(alpha: 0.5), blurRadius: 10, spreadRadius: 2),
+              ],
+            ),
+          ),
+          // Base
+          Container(
+            width: widget.size * 0.95 * widget.scaleFactor,
+            height: widget.size * 0.95 * widget.scaleFactor,
+            decoration: BoxDecoration(
               color: AppColors.cardBackground,
               shape: BoxShape.circle,
+              gradient: RadialGradient(
+                colors: [
+                  AppColors.cardBackground,
+                  Colors.black.withValues(alpha: 0.8),
+                ],
+              ),
             ),
           ),
           // Knob
           Transform.translate(
             offset: knobOffset,
             child: Container(
-              width: widget.size * 0.28 * widget.scaleFactor,
-              height: widget.size * 0.28 * widget.scaleFactor,
+              width: widget.size * 0.35 * widget.scaleFactor,
+              height: widget.size * 0.35 * widget.scaleFactor,
               decoration: BoxDecoration(
                 color: AppColors.joyStick,
                 shape: BoxShape.circle,
+                border: Border.all(color: AppColors.joyStickGlow.withValues(alpha: 0.5), width: 2),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.joyStickGlow.withValues(alpha: 0.3),
+                    blurRadius: 10,
+                    spreadRadius: 2,
+                  ),
+                ],
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    AppColors.joyStick,
+                    Colors.black.withValues(alpha: 0.5),
+                  ],
+                ),
               ),
             ),
           ),

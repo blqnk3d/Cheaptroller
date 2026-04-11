@@ -2,13 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:game_controler/Controller_Layouts/Playstation_Controller.dart';
 import 'package:game_controler/Controller_Layouts/XBox_Controller.dart';
+import 'package:game_controler/Controller_Layouts/Custom_Controller.dart';
+import 'package:game_controler/Controller_Layouts/Custom_Controller_Editor.dart';
 import 'package:game_controler/Elements/qrScanner.dart';
-import 'package:game_controler/style.dart';
 import 'package:provider/provider.dart';
 import 'package:game_controler/Settings/settingsProvider.dart';
-
-// RouteObserver to detect returning from other pages
-final RouteObserver<ModalRoute> routeObserver = RouteObserver<ModalRoute>();
 
 class StartPage extends StatefulWidget {
   static const routeName = '/';
@@ -18,49 +16,33 @@ class StartPage extends StatefulWidget {
   State<StartPage> createState() => _StartPageState();
 }
 
-class _StartPageState extends State<StartPage> with RouteAware {
-  late TextEditingController _ipController;
-
+class _StartPageState extends State<StartPage> {
   @override
   void initState() {
     super.initState();
-
-    _ipController = TextEditingController();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final currentIp = context.read<SettingsProvider>().ipAddress;
-      _ipController.text = currentIp;
-    });
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+    ]);
   }
 
-  @override
-  void dispose() {
-    _ipController.dispose();
-    SystemChrome.setPreferredOrientations(DeviceOrientation.values); // reset
-    routeObserver.unsubscribe(this);
-    super.dispose();
+  void _navigateTo(String routeName, {Object? arguments}) {
+    Navigator.pushNamed(context, routeName, arguments: arguments);
   }
 
-  void _playstation_controller(String ip) {
-    Navigator.pushNamed(
-      context,
-      Playstation_Controller.routeName,
-      arguments: ip,
-    );
-  }
-
-  void _xbox_controller(String ip) {
-    Navigator.pushNamed(context, Xbox_Controller.routeName, arguments: ip);
+  void _layout_editor() {
+    Navigator.pushNamed(context, CustomControllerEditor.routeName);
   }
 
   void _scanQRCode() async {
     final scannedIp = await Navigator.push<String>(
       context,
-      MaterialPageRoute(builder: (_) => QRScannerPage()),
+      MaterialPageRoute(builder: (_) => const QRScannerPage()),
     );
 
     if (scannedIp != null && scannedIp.isNotEmpty) {
-      context.read<SettingsProvider>().setIpAddress(scannedIp);
-      _ipController.text = scannedIp;
+      if (mounted) {
+        context.read<SettingsProvider>().setIpAddress(scannedIp);
+      }
     }
   }
 
@@ -70,37 +52,52 @@ class _StartPageState extends State<StartPage> with RouteAware {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
-          backgroundColor: Colors.grey[850],
-          title: const Text('Settings', style: TextStyle(color: Colors.white)),
+          backgroundColor: const Color(0xFF1A1A1A),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: const BorderSide(color: Colors.white10),
+          ),
+          title: const Row(
+            children: [
+              Icon(Icons.settings, color: Colors.blueAccent),
+              SizedBox(width: 10),
+              Text('Settings', style: TextStyle(color: Colors.white)),
+            ],
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              SwitchListTile(
-                title: const Text('Haptic Feedback', style: TextStyle(color: Colors.white)),
-                value: settings.hapticFeedbackEnabled,
-                onChanged: (val) {
-                  settings.setHapticFeedback(val);
-                  setState(() {});
-                },
-              ),
-              SwitchListTile(
-                title: const Text('Gyro Steering', style: TextStyle(color: Colors.white)),
-                value: settings.gyroSteeringEnabled,
-                onChanged: (val) {
-                  settings.setGyroSteering(val);
-                  setState(() {});
-                },
-              ),
+              _dialogSwitch('Haptic Feedback', settings.hapticFeedbackEnabled, (val) {
+                settings.setHapticFeedback(val);
+                setState(() {});
+              }),
+              _dialogSwitch('Gyro Steering', settings.gyroSteeringEnabled, (val) {
+                settings.setGyroSteering(val);
+                setState(() {});
+              }),
+              _dialogSwitch('Show Connection Status', settings.showConnectionStatus, (val) {
+                settings.setShowConnectionStatus(val);
+                setState(() {});
+              }),
             ],
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('Close', style: TextStyle(color: Colors.white)),
+              child: const Text('Close', style: TextStyle(color: Colors.blueAccent)),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _dialogSwitch(String title, bool value, Function(bool) onChanged) {
+    return SwitchListTile(
+      title: Text(title, style: const TextStyle(color: Colors.white, fontSize: 14)),
+      value: value,
+      activeColor: Colors.blueAccent,
+      onChanged: onChanged,
     );
   }
 
@@ -110,43 +107,41 @@ class _StartPageState extends State<StartPage> with RouteAware {
 
     await showDialog(
       context: context,
-      builder:
-          (ctx) => AlertDialog(
-            backgroundColor: Colors.grey[850],
-            title: const Text('Edit IP', style: TextStyle(color: Colors.white)),
-            content: TextField(
-              controller: newIpController,
-              autofocus: true,
-              style: const TextStyle(color: Colors.white),
-              decoration: const InputDecoration(
-                hintText: 'Enter IP',
-                hintStyle: TextStyle(color: Colors.white38),
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text(
-                  'Cancel',
-                  style: TextStyle(color: Colors.white70),
-                ),
-              ),
-              TextButton(
-                onPressed: () {
-                  final ip = newIpController.text.trim();
-                  if (ip.isNotEmpty) {
-                    settings.setIpAddress(ip);
-                    _ipController.text = ip;
-                  }
-                  Navigator.pop(ctx);
-                },
-                child: const Text(
-                  'Save',
-                  style: TextStyle(color: Colors.white),
-                ),
-              ),
-            ],
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A1A),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: Colors.white10),
+        ),
+        title: const Text('Server IP Address', style: TextStyle(color: Colors.white)),
+        content: TextField(
+          controller: newIpController,
+          autofocus: true,
+          style: const TextStyle(color: Colors.white),
+          keyboardType: TextInputType.number,
+          decoration: InputDecoration(
+            hintText: 'e.g. 192.168.1.10',
+            hintStyle: const TextStyle(color: Colors.white24),
+            filled: true,
+            fillColor: Colors.black26,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
           ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel', style: TextStyle(color: Colors.white70))),
+          ElevatedButton(
+            onPressed: () {
+              final ip = newIpController.text.trim();
+              if (ip.isNotEmpty) {
+                settings.setIpAddress(ip);
+              }
+              Navigator.pop(ctx);
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent, foregroundColor: Colors.white),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -156,92 +151,209 @@ class _StartPageState extends State<StartPage> with RouteAware {
     final ip = settings.ipAddress;
 
     return Scaffold(
-      backgroundColor: Colors.grey[900],
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings, color: Colors.white),
-            onPressed: _settingsDialog,
+      backgroundColor: const Color(0xFF0F0F0F),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: RadialGradient(
+            center: Alignment.topLeft,
+            radius: 1.5,
+            colors: [
+              Colors.blueAccent.withValues(alpha: 0.05),
+              Colors.transparent,
+            ],
           ),
-        ],
-      ),
-      body: SafeArea(
-        child: Center(
+        ),
+        child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24.0),
             child: Column(
-              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                GestureDetector(
-                  onTap: _editIpDialog,
-                  child: Text(
-                    ip.isEmpty ? '(Keine IP gesetzt)' : ip,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(color: Colors.white, fontSize: 18),
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('CHEAPTROLLER', 
+                          style: TextStyle(
+                            color: Colors.white, 
+                            fontSize: 24, 
+                            fontWeight: FontWeight.w900, 
+                            letterSpacing: 2
+                          )
+                        ),
+                        Text('Mobile Game Controller', 
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.5), 
+                            fontSize: 12
+                          )
+                        ),
+                      ],
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.settings_outlined, color: Colors.white70),
+                      onPressed: _settingsDialog,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 40),
+                
+                // Connection Card
+                _buildConnectionCard(ip),
+                
+                const SizedBox(height: 40),
+                const Text('SELECT CONTROLLER', style: TextStyle(color: Colors.white54, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.5)),
+                const SizedBox(height: 16),
+                
+                Expanded(
+                  child: ListView(
+                    physics: const BouncingScrollPhysics(),
+                    children: [
+                      _controllerCard(
+                        'Playstation DualShock',
+                        'Classic PS layout with DPAD and face buttons',
+                        Icons.sports_esports,
+                        Colors.blueAccent,
+                        ip.isEmpty ? null : () => _navigateTo(Playstation_Controller.routeName, arguments: ip),
+                      ),
+                      _controllerCard(
+                        'Xbox Wireless',
+                        'Standard Xbox offset joystick layout',
+                        Icons.videogame_asset,
+                        Colors.greenAccent,
+                        ip.isEmpty ? null : () => _navigateTo(Xbox_Controller.routeName, arguments: ip),
+                      ),
+                      _controllerCard(
+                        'Custom Layout',
+                        'Your own personalized controller setup',
+                        Icons.dashboard_customize,
+                        Colors.orangeAccent,
+                        ip.isEmpty ? null : () => _navigateTo(CustomController.routeName, arguments: ip),
+                      ),
+                      const SizedBox(height: 20),
+                      
+                      // Editor Button
+                      InkWell(
+                        onTap: _layout_editor,
+                        borderRadius: BorderRadius.circular(16),
+                        child: Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.03),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: Colors.white10),
+                          ),
+                          child: const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.edit_note, color: Colors.white70),
+                              SizedBox(width: 10),
+                              Text('OPEN LAYOUT EDITOR', style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold)),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 40),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 12),
-                ElevatedButton.icon(
-                  onPressed: _scanQRCode,
-                  icon: const Icon(Icons.qr_code_scanner),
-                  label: const Text('Scan QR code to connect'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.background,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 16,
-                      horizontal: 24,
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildConnectionCard(String ip) {
+    bool isConnected = ip.isNotEmpty;
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A1A1A),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: isConnected ? Colors.blueAccent.withValues(alpha: 0.3) : Colors.white10),
+        boxShadow: [
+          if (isConnected) BoxShadow(color: Colors.blueAccent.withValues(alpha: 0.1), blurRadius: 20, spreadRadius: -5),
+        ],
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: isConnected ? Colors.blueAccent.withValues(alpha: 0.1) : Colors.white.withValues(alpha: 0.05),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(isConnected ? Icons.link : Icons.link_off, color: isConnected ? Colors.blueAccent : Colors.white38),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(isConnected ? 'Connected Server' : 'No Server Linked', style: TextStyle(color: isConnected ? Colors.white : Colors.white38, fontSize: 16, fontWeight: FontWeight.bold)),
+                    GestureDetector(
+                      onTap: _editIpDialog,
+                      child: Text(isConnected ? ip : 'Tap to set IP manually', style: TextStyle(color: isConnected ? Colors.blueAccent : Colors.white24, fontSize: 13)),
                     ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.qr_code_scanner, color: Colors.white70),
+                onPressed: _scanQRCode,
+                tooltip: 'Scan QR Code',
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _controllerCard(String title, String subtitle, IconData icon, Color color, VoidCallback? onTap) {
+    bool isDisabled = onTap == null;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12.0),
+      child: Opacity(
+        opacity: isDisabled ? 0.5 : 1.0,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(20),
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1A1A1A),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.white10),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Icon(icon, color: color, size: 28),
+                ),
+                const SizedBox(width: 20),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(title, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 4),
+                      Text(subtitle, style: const TextStyle(color: Colors.white38, fontSize: 12)),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 30),
-                ElevatedButton(
-                  onPressed:
-                      ip.isEmpty ? null : () => _playstation_controller(ip),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.cardBackground,
-                    foregroundColor: AppColors.textPrimary,
-                    disabledBackgroundColor: AppColors.buttonDisabled,
-                    disabledForegroundColor: Colors.grey[500],
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 16,
-                      horizontal: 24,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: const Text(
-                    'Start Playstation Controller',
-                    style: AppTextStyles.body,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                ElevatedButton(
-                  onPressed: ip.isEmpty ? null : () => _xbox_controller(ip),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.cardBackground,
-                    foregroundColor: AppColors.textPrimary,
-                    disabledBackgroundColor: AppColors.buttonDisabled,
-                    disabledForegroundColor: Colors.grey[500],
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 16,
-                      horizontal: 24,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: const Text(
-                    'Start XBox Controller',
-                    style: AppTextStyles.body,
-                  ),
-                ),
+                const Icon(Icons.chevron_right, color: Colors.white24),
               ],
             ),
           ),

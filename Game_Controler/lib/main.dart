@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:game_controler/Controller_Layouts/Playstation_Controller.dart';
 import 'package:game_controler/Controller_Layouts/XBox_Controller.dart';
+import 'package:game_controler/Controller_Layouts/Custom_Controller.dart';
+import 'package:game_controler/Controller_Layouts/Custom_Controller_Editor.dart';
 import 'package:game_controler/Settings/settingsProvider.dart';
 import 'package:provider/provider.dart';
 
@@ -58,6 +60,8 @@ class MyApp extends StatelessWidget {
             Playstation_Controller.routeName:
                 (_) => const Playstation_Controller(),
             Xbox_Controller.routeName: (_) => const Xbox_Controller(),
+            CustomController.routeName: (_) => const CustomController(),
+            CustomControllerEditor.routeName: (_) => const CustomControllerEditor(),
           },
         );
       },

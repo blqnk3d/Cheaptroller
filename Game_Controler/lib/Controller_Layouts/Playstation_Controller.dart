@@ -8,6 +8,7 @@ import 'package:game_controler/Elements/buttons.dart';
 import 'package:game_controler/Elements/dpad.dart';
 import 'package:game_controler/Elements/joystick.dart';
 import 'package:game_controler/Elements/middlebutton.dart';
+import 'package:game_controler/Elements/status_indicator.dart';
 import 'package:provider/provider.dart';
 import 'package:game_controler/Settings/settingsProvider.dart';
 import '../style.dart';
@@ -91,6 +92,12 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
     socket?.close();
     _accelerometerSubscription?.cancel();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
     super.dispose();
   }
 
@@ -155,11 +162,16 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
   }
 
   Widget _buildTopBumpers(double width) {
+    final settings = Provider.of<SettingsProvider>(context);
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 0, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [_topButton('LB', 4, 'left'), _topButton('RB', 5, 'right')],
+        children: [
+          _topButton('LB', 4, 'left'),
+          if (settings.showConnectionStatus) ConnectionStatusIndicator(isConnected: _isSocketReady),
+          _topButton('RB', 5, 'right'),
+        ],
       ),
     );
   }
@@ -182,7 +194,7 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
         decoration: BoxDecoration(
           color:
               isPressed
-                  ? Colors.greenAccent.withOpacity(0.5)
+                  ? Colors.greenAccent.withValues(alpha: 0.5)
                   : AppColors.cardBackground,
           borderRadius: BorderRadius.circular(10 * scale),
           border: Border.all(color: AppColors.textPrimary, width: 1.5 * scale),
