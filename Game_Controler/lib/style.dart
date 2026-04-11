@@ -6,7 +6,7 @@ class AppColors {
   static const cardBackground = Color(0xFF1A1A1A); // card grey
 
   static const joyStick = Color(0xFF333333);
-  static const joyStickGlow = Colors.blueAccent;
+  static const joyStickGlow = Color(0xFFE0E0E0); // silver/white glow
 
   static const buttonDisabled = Color(0xFF1A1A1A);
   

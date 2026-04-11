@@ -40,7 +40,12 @@ class _CustomControllerEditorState extends State<CustomControllerEditor> {
   @override
   void dispose() {
     _appBarTimer?.cancel();
-    // Revert immersive mode if needed, though usually handled by page transitions
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
     super.dispose();
   }
 
