@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:game_controler/Controller_Layouts/Playstation_Controller.dart';
-import 'package:game_controler/Controller_Layouts/XBox_Controller.dart';
+import 'package:game_controler/Controller_Layouts/Xbox_Controller.dart'; // Corrected import
 import 'package:game_controler/Controller_Layouts/Custom_Controller.dart';
 import 'package:game_controler/Controller_Layouts/Custom_Controller_Editor.dart';
 import 'package:game_controler/Settings/settingsProvider.dart';
@@ -8,12 +8,26 @@ import 'package:provider/provider.dart';
 
 import 'startpage.dart';
 import 'style.dart';
+import 'utils/udp_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   runApp(
-    ChangeNotifierProvider(
-      create: (_) => SettingsProvider(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => SettingsProvider()),
+        ChangeNotifierProxyProvider<SettingsProvider, UdpService>(
+          create: (_) => UdpService(),
+          update: (context, settingsProvider, udpService) {
+            udpService?.updateSettings(
+              settingsProvider.gyroSteeringEnabled,
+              settingsProvider.hapticFeedbackEnabled,
+              settingsProvider.showConnectionStatus,
+            );
+            return udpService!;
+          },
+        ),
+      ],
       child: const MyApp(),
     ),
   );
@@ -24,6 +38,22 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Access UdpService and SettingsProvider here to initialize connection and settings
+    final udpService = Provider.of<UdpService>(context, listen: false);
+    final settingsProvider = Provider.of<SettingsProvider>(context, listen: false);
+
+    // Connect to the server IP from settings when the app starts
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (settingsProvider.ipAddress.isNotEmpty) {
+        udpService.connect(settingsProvider.ipAddress);
+      }
+      udpService.updateSettings(
+        settingsProvider.gyroSteeringEnabled,
+        settingsProvider.hapticFeedbackEnabled,
+        settingsProvider.showConnectionStatus,
+      );
+    });
+
     return Consumer<SettingsProvider>(
       builder: (context, settings, _) {
         return MaterialApp(

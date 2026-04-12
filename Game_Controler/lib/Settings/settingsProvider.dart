@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../Models/custom_layout_model.dart';
+import '../utils/udp_service.dart'; // Import UdpService
+import 'package:provider/provider.dart'; // Import Provider
 
 class SettingsProvider extends ChangeNotifier {
   bool _isDarkMode = false;
@@ -28,9 +30,11 @@ class SettingsProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setIpAddress(String ip) async {
+  void setIpAddress(String ip, BuildContext context) async {
     _ipAddress = ip;
-    saveLastSuccessfulIp(ip);
+    await saveLastSuccessfulIp(ip);
+    // Notify UdpService to connect/reconnect
+    Provider.of<UdpService>(context, listen: false).connect(ip);
     notifyListeners();
   }
 
@@ -38,29 +42,48 @@ class SettingsProvider extends ChangeNotifier {
     _ipAddress = ip;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('last_ip', ip);
-    notifyListeners();
+    // No need to notifyListeners() here as it's called by setIpAddress
   }
 
-  void setHapticFeedback(bool value) async {
+  void setHapticFeedback(bool value, BuildContext context) async {
     _hapticFeedbackEnabled = value;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('haptic_feedback', value);
+    // Notify UdpService about the setting change
+    Provider.of<UdpService>(context, listen: false).updateSettings(
+      _gyroSteeringEnabled,
+      value,
+      _showConnectionStatus,
+    );
     notifyListeners();
   }
 
-  void setGyroSteering(bool value) async {
+  void setGyroSteering(bool value, BuildContext context) async {
     _gyroSteeringEnabled = value;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('gyro_steering', value);
+    // Notify UdpService about the setting change
+    Provider.of<UdpService>(context, listen: false).updateSettings(
+      value,
+      _hapticFeedbackEnabled,
+      _showConnectionStatus,
+    );
     notifyListeners();
   }
 
-  void setShowConnectionStatus(bool value) async {
+  void setShowConnectionStatus(bool value, BuildContext context) async {
     _showConnectionStatus = value;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('show_connection_status', value);
+    // Notify UdpService about the setting change
+    Provider.of<UdpService>(context, listen: false).updateSettings(
+      _gyroSteeringEnabled,
+      _hapticFeedbackEnabled,
+      value,
+    );
     notifyListeners();
   }
+
 
   Future<void> saveCustomLayout(CustomLayout layout) async {
     _customLayout = layout;
@@ -83,4 +106,4 @@ class SettingsProvider extends ChangeNotifier {
 
     notifyListeners();
   }
-  }
+}

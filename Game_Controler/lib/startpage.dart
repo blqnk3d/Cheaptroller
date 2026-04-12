@@ -7,6 +7,7 @@ import 'package:game_controler/Controller_Layouts/Custom_Controller_Editor.dart'
 import 'package:game_controler/Elements/qrScanner.dart';
 import 'package:provider/provider.dart';
 import 'package:game_controler/Settings/settingsProvider.dart';
+import 'package:game_controler/utils/udp_service.dart'; // Import UdpService
 
 class StartPage extends StatefulWidget {
   static const routeName = '/';
@@ -20,13 +21,20 @@ class _StartPageState extends State<StartPage> {
   @override
   void initState() {
     super.initState();
+    // Portrait orientation is set here, but landscape is handled by UdpService on connect
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.portraitUp,
     ]);
   }
 
-  void _navigateTo(String routeName, {Object? arguments}) {
-    Navigator.pushNamed(context, routeName, arguments: arguments);
+  void _navigateTo(String routeName) {
+    // Connect to the selected controller's IP address before navigating
+    final udpService = Provider.of<UdpService>(context, listen: false);
+    final settingsProvider = Provider.of<SettingsProvider>(context, listen: false);
+    if (settingsProvider.ipAddress.isNotEmpty) {
+      udpService.connect(settingsProvider.ipAddress);
+    }
+    Navigator.pushNamed(context, routeName);
   }
 
   void _layout_editor() {
@@ -41,17 +49,23 @@ class _StartPageState extends State<StartPage> {
 
     if (scannedIp != null && scannedIp.isNotEmpty) {
       if (mounted) {
-        context.read<SettingsProvider>().setIpAddress(scannedIp);
+        final settings = context.read<SettingsProvider>();
+        final udpService = Provider.of<UdpService>(context, listen: false);
+        settings.setIpAddress(scannedIp, context); // Pass context to update UdpService
+        // Attempt to connect immediately after setting IP
+        udpService.connect(scannedIp);
       }
     }
   }
 
   Future<void> _settingsDialog() async {
     final settings = context.read<SettingsProvider>();
+    final udpService = Provider.of<UdpService>(context, listen: false);
+
     await showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
+        builder: (context, setStateDialog) => AlertDialog(
           backgroundColor: const Color(0xFF1A1A1A),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
@@ -67,18 +81,33 @@ class _StartPageState extends State<StartPage> {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              _dialogSwitch('Haptic Feedback', settings.hapticFeedbackEnabled, (val) {
-                settings.setHapticFeedback(val);
-                setState(() {});
-              }),
-              _dialogSwitch('Gyro Steering', settings.gyroSteeringEnabled, (val) {
-                settings.setGyroSteering(val);
-                setState(() {});
-              }),
-              _dialogSwitch('Show Connection Status', settings.showConnectionStatus, (val) {
-                settings.setShowConnectionStatus(val);
-                setState(() {});
-              }),
+              SwitchListTile(
+                title: const Text('Haptic Feedback', style: TextStyle(color: Colors.white, fontSize: 14)),
+                value: settings.hapticFeedbackEnabled,
+                activeColor: Colors.blueAccent,
+                onChanged: (val) {
+                  settings.setHapticFeedback(val, context);
+                  setStateDialog(() {}); // Update dialog UI
+                },
+              ),
+              SwitchListTile(
+                title: const Text('Gyro Steering', style: TextStyle(color: Colors.white, fontSize: 14)),
+                value: settings.gyroSteeringEnabled,
+                activeColor: Colors.blueAccent,
+                onChanged: (val) {
+                  settings.setGyroSteering(val, context);
+                  setStateDialog(() {}); // Update dialog UI
+                },
+              ),
+              SwitchListTile(
+                title: const Text('Show Connection Status', style: TextStyle(color: Colors.white, fontSize: 14)),
+                value: settings.showConnectionStatus,
+                activeColor: Colors.blueAccent,
+                onChanged: (val) {
+                  settings.setShowConnectionStatus(val, context);
+                  setStateDialog(() {}); // Update dialog UI
+                },
+              ),
             ],
           ),
           actions: [
@@ -92,17 +121,9 @@ class _StartPageState extends State<StartPage> {
     );
   }
 
-  Widget _dialogSwitch(String title, bool value, Function(bool) onChanged) {
-    return SwitchListTile(
-      title: Text(title, style: const TextStyle(color: Colors.white, fontSize: 14)),
-      value: value,
-      activeColor: Colors.blueAccent,
-      onChanged: onChanged,
-    );
-  }
-
   Future<void> _editIpDialog() async {
     final settings = context.read<SettingsProvider>();
+    final udpService = Provider.of<UdpService>(context, listen: false);
     final newIpController = TextEditingController(text: settings.ipAddress);
 
     await showDialog(
@@ -133,7 +154,8 @@ class _StartPageState extends State<StartPage> {
             onPressed: () {
               final ip = newIpController.text.trim();
               if (ip.isNotEmpty) {
-                settings.setIpAddress(ip);
+                settings.setIpAddress(ip, context); // Pass context to update UdpService
+                udpService.connect(ip); // Attempt to connect
               }
               Navigator.pop(ctx);
             },
@@ -147,128 +169,128 @@ class _StartPageState extends State<StartPage> {
 
   @override
   Widget build(BuildContext context) {
-    final settings = context.watch<SettingsProvider>();
-    final ip = settings.ipAddress;
+    // Use Consumer to listen for changes in SettingsProvider and UdpService
+    return Consumer2<SettingsProvider, UdpService>(
+      builder: (context, settings, udpService, _) {
+        final ip = settings.ipAddress;
+        final isConnected = udpService.isSocketReady; // Use UdpService's connection status
 
-    return Scaffold(
-      backgroundColor: const Color(0xFF0F0F0F),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: RadialGradient(
-            center: Alignment.topLeft,
-            radius: 1.5,
-            colors: [
-              Colors.blueAccent.withValues(alpha: 0.05),
-              Colors.transparent,
-            ],
-          ),
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 20),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        return Scaffold(
+          backgroundColor: const Color(0xFF0F0F0F),
+          body: Container(
+            decoration: BoxDecoration(
+              gradient: RadialGradient(
+                center: Alignment.topLeft,
+                radius: 1.5,
+                colors: [
+                  Colors.blueAccent.withValues(alpha: 0.05),
+                  Colors.transparent,
+                ],
+              ),
+            ),
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    const SizedBox(height: 20),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('CHEAPTROLLER', 
-                          style: TextStyle(
-                            color: Colors.white, 
-                            fontSize: 24, 
-                            fontWeight: FontWeight.w900, 
-                            letterSpacing: 2
-                          )
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('CHEAPTROLLER',
+                                style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: 2)),
+                            Text('Mobile Game Controller',
+                                style: TextStyle(
+                                    color: Colors.white.withValues(alpha: 0.5),
+                                    fontSize: 12)),
+                          ],
                         ),
-                        Text('Mobile Game Controller', 
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.5), 
-                            fontSize: 12
-                          )
+                        IconButton(
+                          icon: const Icon(Icons.settings_outlined, color: Colors.white70),
+                          onPressed: _settingsDialog,
                         ),
                       ],
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.settings_outlined, color: Colors.white70),
-                      onPressed: _settingsDialog,
+                    const SizedBox(height: 40),
+                    
+                    // Connection Card
+                    _buildConnectionCard(ip, isConnected), // Pass isConnected status
+                    
+                    const SizedBox(height: 40),
+                    const Text('SELECT CONTROLLER', style: TextStyle(color: Colors.white54, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.5)),
+                    const SizedBox(height: 16),
+                    
+                    Expanded(
+                      child: ListView(
+                        physics: const BouncingScrollPhysics(),
+                        children: [
+                          _controllerCard(
+                            'Playstation DualShock',
+                            'Classic PS layout with DPAD and face buttons',
+                            Icons.sports_esports,
+                            Colors.blueAccent,
+                            ip.isEmpty ? null : () => _navigateTo(Playstation_Controller.routeName), // No need to pass IP here, handled in _navigateTo
+                          ),
+                          _controllerCard(
+                            'Xbox Wireless',
+                            'Standard Xbox offset joystick layout',
+                            Icons.videogame_asset,
+                            Colors.greenAccent,
+                            ip.isEmpty ? null : () => _navigateTo(Xbox_Controller.routeName), // No need to pass IP here
+                          ),
+                          _controllerCard(
+                            'Custom Layout',
+                            'Your own personalized controller setup',
+                            Icons.dashboard_customize,
+                            Colors.orangeAccent,
+                            ip.isEmpty ? null : () => _navigateTo(CustomController.routeName), // No need to pass IP here
+                          ),
+                          const SizedBox(height: 20),
+                          
+                          // Editor Button
+                          InkWell(
+                            onTap: _layout_editor,
+                            borderRadius: BorderRadius.circular(16),
+                            child: Container(
+                              padding: const EdgeInsets.all(20),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.03),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: Colors.white10),
+                              ),
+                              child: const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.edit_note, color: Colors.white70),
+                                  SizedBox(width: 10),
+                                  Text('OPEN LAYOUT EDITOR', style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold)),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 40),
+                        ],
+                      ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 40),
-                
-                // Connection Card
-                _buildConnectionCard(ip),
-                
-                const SizedBox(height: 40),
-                const Text('SELECT CONTROLLER', style: TextStyle(color: Colors.white54, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.5)),
-                const SizedBox(height: 16),
-                
-                Expanded(
-                  child: ListView(
-                    physics: const BouncingScrollPhysics(),
-                    children: [
-                      _controllerCard(
-                        'Playstation DualShock',
-                        'Classic PS layout with DPAD and face buttons',
-                        Icons.sports_esports,
-                        Colors.blueAccent,
-                        ip.isEmpty ? null : () => _navigateTo(Playstation_Controller.routeName, arguments: ip),
-                      ),
-                      _controllerCard(
-                        'Xbox Wireless',
-                        'Standard Xbox offset joystick layout',
-                        Icons.videogame_asset,
-                        Colors.greenAccent,
-                        ip.isEmpty ? null : () => _navigateTo(Xbox_Controller.routeName, arguments: ip),
-                      ),
-                      _controllerCard(
-                        'Custom Layout',
-                        'Your own personalized controller setup',
-                        Icons.dashboard_customize,
-                        Colors.orangeAccent,
-                        ip.isEmpty ? null : () => _navigateTo(CustomController.routeName, arguments: ip),
-                      ),
-                      const SizedBox(height: 20),
-                      
-                      // Editor Button
-                      InkWell(
-                        onTap: _layout_editor,
-                        borderRadius: BorderRadius.circular(16),
-                        child: Container(
-                          padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.03),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: Colors.white10),
-                          ),
-                          child: const Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.edit_note, color: Colors.white70),
-                              SizedBox(width: 10),
-                              Text('OPEN LAYOUT EDITOR', style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold)),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 40),
-                    ],
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
-  Widget _buildConnectionCard(String ip) {
-    bool isConnected = ip.isNotEmpty;
+  Widget _buildConnectionCard(String ip, bool isConnected) { // Accept isConnected status
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
