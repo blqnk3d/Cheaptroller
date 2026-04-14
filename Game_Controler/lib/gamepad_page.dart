@@ -28,6 +28,7 @@ class _GamepadPageState extends State<GamepadPage> {
   static const int batchWindowMs = 5;
   static const int maxBatchSize = 10;
   static const int joystickRateMs = 16;
+  static const bool debugProtocol = false;
 
   final Queue<InputEvent> _inputQueue = Queue();
   Timer? _batchTimer;
@@ -47,6 +48,12 @@ class _GamepadPageState extends State<GamepadPage> {
     "left": DateTime.now(),
     "right": DateTime.now(),
   };
+
+  void _debugLog(String msg) {
+    if (debugProtocol) {
+      print("[PROTOCOL] $msg");
+    }
+  }
 
   @override
   void initState() {
@@ -95,10 +102,14 @@ class _GamepadPageState extends State<GamepadPage> {
 
   void _queueInput(InputEvent event) {
     if (event.type == InputType.button) {
+      _debugLog(
+          "BUTTON ${event.pressed ? 'DOWN' : 'UP'} side=${event.side} index=${event.index} (immediate)");
       sendUDP(event.toBytes());
       return;
     }
 
+    _debugLog(
+        "MOVE side=${event.side} x=${event.x.toStringAsFixed(2)} y=${event.y.toStringAsFixed(2)} (queued)");
     if (_inputQueue.length >= maxBatchSize) {
       _inputQueue.removeFirst();
     }
@@ -111,6 +122,7 @@ class _GamepadPageState extends State<GamepadPage> {
     final List<InputEvent> events = List.from(_inputQueue);
     _inputQueue.clear();
 
+    _debugLog("FLUSH batch with ${events.length} events");
     if (events.length == 1) {
       sendUDP(events.first.toBytes());
     } else {

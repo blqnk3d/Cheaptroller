@@ -10,6 +10,15 @@ const UDP_PORT = 8080;
 let ioInstance = null;
 let shuttingDown = false;
 
+// Debug logging for protocol
+const DEBUG_PROTOCOL = process.env.DEBUG_PROTOCOL === "1";
+
+function debugProtocol(...args) {
+  if (DEBUG_PROTOCOL) {
+    console.log("[PROTOCOL]", ...args);
+  }
+}
+
 // Client management
 // Map<string, Object> where key is "ip:port"
 const clients = new Map();
@@ -80,19 +89,26 @@ const udpServer = dgram.createSocket("udp4");
 udpServer.on("message", (msg, rinfo) => {
   if (shuttingDown) return;
 
+  debugProtocol("Received", msg.length, "bytes from", rinfo.address + ":" + rinfo.port);
+
   let d;
   if (isBinaryMessage(msg)) {
     d = decodeMessage(msg);
+    debugProtocol("Binary decoded:", JSON.stringify(d));
   } else {
     try {
       d = JSON.parse(msg);
+      debugProtocol("JSON decoded:", JSON.stringify(d));
     } catch (e) {
       logger.warn("UDP message not valid from %s", rinfo.address);
       return;
     }
   }
 
-  if (!d) return;
+  if (!d) {
+    debugProtocol("Decode failed!");
+    return;
+  }
 
   const { type: t, side, index, x, y, timestamp, events } = d;
 
@@ -133,12 +149,14 @@ udpServer.on("message", (msg, rinfo) => {
   }
 
   if (t === "batch" && events) {
+    debugProtocol("Processing BATCH with", events.length, "events");
     for (const event of events) {
       processEvent(client, event);
     }
     return;
   }
 
+  debugProtocol("Processing single event:", t, side, index, x, y);
   processEvent(client, { type: t, side, index, x, y, timestamp });
 
   if (t === "ip_update" && d.ip) {
