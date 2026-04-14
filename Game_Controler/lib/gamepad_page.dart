@@ -1,10 +1,10 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_joystick/flutter_joystick.dart';
 import 'package:game_controler/Settings/settingsProvider.dart';
+import 'package:game_controler/protocol.dart';
 import 'package:provider/provider.dart';
 import 'style.dart';
 
@@ -102,147 +102,149 @@ class _GamepadPageState extends State<GamepadPage> {
     super.dispose();
   }
 
-  void sendUDP(Map<String, dynamic> data) {
+  void sendUDP(Uint8List data) {
     if (!_isSocketReady || socket == null || serverAddress == null) {
       return;
     }
-    final bytes = utf8.encode(jsonEncode(data));
-    socket!.send(bytes, serverAddress!, port);
+    socket!.send(data, serverAddress!, port);
   }
 
   void sendMove(String side, double x, double y) {
-    sendUDP({"type": "move", "side": side, "x": x, "y": y});
+    sendUDP(encodeMove(side, x, y));
   }
 
   void sendButton(String side, int index, bool pressed) {
-    sendUDP({
-      "type": pressed ? "button_down" : "button_up",
-      "side": side,
-      "index": index,
-    });
+    sendUDP(encodeButton(side, index, pressed));
   }
 
   Widget buildJoystick(String side) {
-  return LayoutBuilder(
-    builder: (context, constraints) {
-      final joystickSize = constraints.maxHeight * 0.5;
-      final List<String> buttonLabels =
-          side == 'left' ? ['Left Click', 'Right Click', 'Middle Mouse'] : ['R1', 'R2', 'R3'];
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final joystickSize = constraints.maxHeight * 0.5;
+        final List<String> buttonLabels = side == 'left'
+            ? ['Left Click', 'Right Click', 'Middle Mouse']
+            : ['R1', 'R2', 'R3'];
 
-      Widget joystickWidget = Joystick(
-        mode: JoystickMode.all,
-        stick: Container(
-          width: 60,
-          height: 60,
-          decoration: BoxDecoration(
-            color: AppColors.joyStick,
-            shape: BoxShape.circle,
-            boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(2, 2))],
-          ),
-        ),
-        base: Container(
-          width: joystickSize,
-          height: joystickSize,
-          decoration: BoxDecoration(
-            color: AppColors.cardBackground,
-            shape: BoxShape.circle,
-          ),
-        ),
-        listener: (details) {
-          double x = (details.x.abs() < deadzone) ? 0 : details.x;
-          double y = (details.y.abs() < deadzone) ? 0 : details.y;
-
-          joystickPositions[side] = Offset(x, y);
-          lastSentTime[side] = DateTime.now();
-          sendMove(side, x, y);
-        },
-      );
-
-      if (side == 'left') {
-        joystickWidget = GestureDetector(
-          onPanEnd: (_) {
-            // Send (0,0) when released
-            joystickPositions[side] = const Offset(0, 0);
-            sendMove(side, 0, 0);
-          },
-          child: joystickWidget,
-        );
-      } else {
-        joystickWidget = GestureDetector(
-          onPanEnd: (_) {
-            joystickPositions[side] = const Offset(0, 0);
-            sendMove(side, 0, 0);
-          },
-          child: joystickWidget,
-        );
-      }
-
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(3, (i) {
-                return Padding(
-                  padding: const EdgeInsets.all(10.0),
-                  child: Column(
-                    children: [
-                      GestureDetector(
-                        onTapDown: (_) => sendButton(side, i, true),
-                        onTapUp: (_) => sendButton(side, i, false),
-                        onTapCancel: () => sendButton(side, i, false),
-                        child: Container(
-                          width: 70,
-                          height: 70,
-                          decoration: BoxDecoration(
-                            color: Colors.transparent,
-                            border: Border.all(color: AppColors.textPrimary, width: 2),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Icon(Icons.circle, color: AppColors.textSecondary, size: 32),
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(buttonLabels[i], style: AppTextStyles.body),
-                    ],
-                  ),
-                );
-              }),
+        Widget joystickWidget = Joystick(
+          mode: JoystickMode.all,
+          stick: Container(
+            width: 60,
+            height: 60,
+            decoration: BoxDecoration(
+              color: AppColors.joyStick,
+              shape: BoxShape.circle,
+              boxShadow: const [
+                BoxShadow(
+                    color: Colors.black26, blurRadius: 4, offset: Offset(2, 2))
+              ],
             ),
-            const SizedBox(height: 24),
-            SizedBox(width: joystickSize, height: joystickSize, child: joystickWidget),
-          ],
-        ),
-      );
-    },
-  );
-}
+          ),
+          base: Container(
+            width: joystickSize,
+            height: joystickSize,
+            decoration: BoxDecoration(
+              color: AppColors.cardBackground,
+              shape: BoxShape.circle,
+            ),
+          ),
+          listener: (details) {
+            double x = (details.x.abs() < deadzone) ? 0 : details.x;
+            double y = (details.y.abs() < deadzone) ? 0 : details.y;
 
+            joystickPositions[side] = Offset(x, y);
+            lastSentTime[side] = DateTime.now();
+            sendMove(side, x, y);
+          },
+        );
+
+        if (side == 'left') {
+          joystickWidget = GestureDetector(
+            onPanEnd: (_) {
+              // Send (0,0) when released
+              joystickPositions[side] = const Offset(0, 0);
+              sendMove(side, 0, 0);
+            },
+            child: joystickWidget,
+          );
+        } else {
+          joystickWidget = GestureDetector(
+            onPanEnd: (_) {
+              joystickPositions[side] = const Offset(0, 0);
+              sendMove(side, 0, 0);
+            },
+            child: joystickWidget,
+          );
+        }
+
+        return Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(3, (i) {
+                  return Padding(
+                    padding: const EdgeInsets.all(10.0),
+                    child: Column(
+                      children: [
+                        GestureDetector(
+                          onTapDown: (_) => sendButton(side, i, true),
+                          onTapUp: (_) => sendButton(side, i, false),
+                          onTapCancel: () => sendButton(side, i, false),
+                          child: Container(
+                            width: 70,
+                            height: 70,
+                            decoration: BoxDecoration(
+                              color: Colors.transparent,
+                              border: Border.all(
+                                  color: AppColors.textPrimary, width: 2),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Icon(Icons.circle,
+                                color: AppColors.textSecondary, size: 32),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(buttonLabels[i], style: AppTextStyles.body),
+                      ],
+                    ),
+                  );
+                }),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                  width: joystickSize,
+                  height: joystickSize,
+                  child: joystickWidget),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    backgroundColor: AppColors.background,
-    body: SafeArea(
-      child:
-          _isSocketReady
+        backgroundColor: AppColors.background,
+        body: SafeArea(
+          child: _isSocketReady
               ? Row(
-                children: [
-                  Expanded(child: buildJoystick("left")),
-                  const SizedBox(width: 150),
-                  Expanded(child: buildJoystick("right")),
-                ],
-              )
-              : const Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    CircularProgressIndicator(),
-                    SizedBox(height: 16),
-                    Text("Connecting..."),
+                    Expanded(child: buildJoystick("left")),
+                    const SizedBox(width: 150),
+                    Expanded(child: buildJoystick("right")),
                   ],
+                )
+              : const Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      CircularProgressIndicator(),
+                      SizedBox(height: 16),
+                      Text("Connecting..."),
+                    ],
+                  ),
                 ),
-              ),
-    ),
-  );
+        ),
+      );
 }
