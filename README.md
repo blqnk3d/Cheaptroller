@@ -39,11 +39,23 @@ The **Cheaptroller** app is currently confirmed to be functional and tested only
     ```bash
     chmod +x Backend_controler
     ```
-3.  **Run:** Execute the file by double-clicking it or running it from the terminal. A browser with the configuration **dashboard** will automatically open.
+3.  **Setup uinput:** Install the udev rule to allow controller simulation without sudo:
+    ```bash
+    sudo cp 99-uinput.rules /etc/udev/rules.d/
+    sudo udevadm control --reload-rules
+    sudo udevadm trigger
+    ```
+    Then add your user to the `input` group:
+    ```bash
+    sudo usermod -aG input $USER
+    # Log out and log back in for changes to take effect
+    ```
+4.  **Run:** Execute the file by double-clicking it or running it from the terminal. A browser with the configuration **dashboard** will automatically open.
 
 **Important Notes:**
 
 - Ensure your **firewall** is configured to allow **UDP traffic** for the server application.
+- The udev rule is required for `/dev/uinput` access without root privileges.
 
 ## 3. Screenshots and User Interface (UI)
 
@@ -80,6 +92,7 @@ The Cheaptroller uses a custom **binary protocol** over UDP for low-latency comm
 | **BUTTON_DOWN** | 0x02 | 7 B  | Button pressed                |
 | **BUTTON_UP**  | 0x03 | 7 B  | Button released               |
 | **HEARTBEAT**  | 0x04 | 5 B  | Connection keep-alive         |
+| **BATCH**     | 0x05 | var   | Multiple events coalesced      |
 
 ### Message Structure
 
@@ -101,16 +114,38 @@ The Cheaptroller uses a custom **binary protocol** over UDP for low-latency comm
   1 B         4 B
 ```
 
+**BATCH** (variable):
+```
+[0x05][count][event1][event2]...
+  1 B     1 B     var        var
+```
+
 ### Fields
 
 | Field      | Type    | Values                      | Description                    |
 | :--------- | :------ | :-------------------------- | :----------------------------- |
-| **type**   | uint8   | 0x01-0x04                   | Message type identifier        |
+| **type**   | uint8   | 0x01-0x05                   | Message type identifier        |
 | **side**   | uint8   | 0 = left, 1 = right         | Controller side                |
 | **x**      | int16   | -32767 to 32767             | Horizontal axis (-1.0 to 1.0)  |
 | **y**      | int16   | -32767 to 32767             | Vertical axis (-1.0 to 1.0)    |
 | **index**  | uint8   | 0-13                        | Button index                   |
 | **timestamp** | uint32 | Unix milliseconds          | For latency tracking           |
+
+### Input Coalescing & Priority
+
+The mobile app uses input coalescing to optimize network usage:
+
+| Feature | Value | Description |
+| :------ | :---- | :---------- |
+| **Batch Window** | 5ms | Multiple joystick events batched together |
+| **Max Batch Size** | 10 events | Maximum events per batch packet |
+| **Joystick Rate** | 60 Hz | Max joystick update frequency |
+| **Button Priority** | HIGH | Buttons sent immediately (no batching) |
+| **Joystick Priority** | LOW | Joysticks are batched |
+
+**Priority Order:** `Button > D-Pad > Joystick`
+
+This ensures button presses have minimal latency while joystick movements are efficiently batched.
 
 ### Button Index Mapping
 
@@ -143,9 +178,11 @@ The button mapping follows a standard, real-world controller configuration.
 
 ## 6. Troubleshooting
 
-| Issue                 | Solution                                |
-| :-------------------- | :-------------------------------------- |
-| **Connection Issues** | Check IP address and firewall settings. |
+| Issue                              | Solution                                                              |
+| :--------------------------------- | :-------------------------------------------------------------------- |
+| **Connection Issues**              | Check IP address and firewall settings.                              |
+| **Cannot open /dev/uinput**        | Run `sudo udevadm control --reload-rules && sudo udevadm trigger` or install the udev rule from `99-uinput.rules`. |
+| **Controller not detected by game**| Ensure the udev rule is installed and user is in the `input` group. |
 
 ## 7. Roadmap / To-Do
 

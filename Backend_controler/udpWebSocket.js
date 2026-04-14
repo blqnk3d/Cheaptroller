@@ -94,16 +94,13 @@ udpServer.on("message", (msg, rinfo) => {
 
   if (!d) return;
 
-  const { type: t, side, index, x, y, timestamp } = d;
+  const { type: t, side, index, x, y, timestamp, events } = d;
 
-  // 1. Identify Client
   const clientKey = `${rinfo.address}:${rinfo.port}`;
   let client = clients.get(clientKey);
 
-  // 2. Register new client if needed
   if (!client) {
     try {
-      // Create a new virtual controller for this client
       const controllerId = gamepad.create();
 
       client = {
@@ -111,7 +108,6 @@ udpServer.on("message", (msg, rinfo) => {
         address: rinfo.address,
         port: rinfo.port,
         lastSeen: Date.now(),
-        // Isolated state for this controller
         stickState: { left: { x: 0, y: 0 }, right: { x: 0, y: 0 } },
         buttonState: new Array(14).fill(false),
         dpadState: { up: false, down: false, left: false, right: false },
@@ -127,10 +123,8 @@ udpServer.on("message", (msg, rinfo) => {
     }
   }
 
-  // Update last seen
   client.lastSeen = Date.now();
 
-  // 3. Handle Latency
   if (timestamp && typeof timestamp === "number" && timestamp > 0) {
     const latencyMs = Date.now() - timestamp;
     if (latencyMs >= 0 && latencyMs < 2000) {
@@ -138,9 +132,23 @@ udpServer.on("message", (msg, rinfo) => {
     }
   }
 
-  // 4. Process Inputs using Client's ID and State
+  if (t === "batch" && events) {
+    for (const event of events) {
+      processEvent(client, event);
+    }
+    return;
+  }
 
-  // --- STICK MOVEMENT ---
+  processEvent(client, { type: t, side, index, x, y, timestamp });
+
+  if (t === "ip_update" && d.ip) {
+    logger.info("Received IP update from %s: %s", rinfo.address, d.ip);
+  }
+});
+
+function processEvent(client, d) {
+  const { type: t, side, index, x, y } = d;
+
   if (t === "move" && (side === "left" || side === "right")) {
     let xVal = Math.abs(x || 0) < STICK_DEADZONE ? 0 : x || 0;
     let yVal = Math.abs(y || 0) < STICK_DEADZONE ? 0 : y || 0;
@@ -149,7 +157,6 @@ udpServer.on("message", (msg, rinfo) => {
     if (stickCache.x !== xVal || stickCache.y !== yVal) {
       stickCache.x = xVal;
       stickCache.y = yVal;
-      // Pass client.id to moveStick
       gamepad.moveStick(
         client.id,
         side,
@@ -160,44 +167,34 @@ udpServer.on("message", (msg, rinfo) => {
     return;
   }
 
-  // --- BUTTON PRESSES ---
   if (t === "button_down" || t === "button_up") {
     const pressed = t === "button_down";
     const idx = typeof index === "string" ? parseInt(index, 10) : index;
     if (!Number.isInteger(idx) || idx < 0 || idx > 13) return;
 
-    // Standard Buttons
     const buttonStr = BUTTON_MAP[idx];
     if (buttonStr) {
       if (client.buttonState[idx] !== pressed) {
         client.buttonState[idx] = pressed;
-        // Pass client.id to pressButton
         gamepad.pressButton(client.id, buttonStr, pressed);
       }
       return;
     }
 
-    // D-Pad
     if (DPAD_INDICES.has(idx)) {
-      const dir = DPAD_MAP[idx]; // 'up', 'down', 'left', 'right'
+      const dir = DPAD_MAP[idx];
       if (dir && client.dpadState[dir] !== pressed) {
         client.dpadState[dir] = pressed;
 
-        // Calculate new composite D-Pad axis
         const dX = client.dpadState.left ? -1 : client.dpadState.right ? 1 : 0;
         const dY = client.dpadState.up ? -1 : client.dpadState.down ? 1 : 0;
 
-        // Pass client.id to moveDpad
         gamepad.moveDpad(client.id, dX, dY);
       }
       return;
     }
   }
-
-  if (t === "ip_update" && d.ip) {
-    logger.info("Received IP update from %s: %s", rinfo.address, d.ip);
-  }
-});
+}
 
 // Error handling
 udpServer.on("error", (err) => {

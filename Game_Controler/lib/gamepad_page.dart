@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:collection';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -23,19 +24,29 @@ class _GamepadPageState extends State<GamepadPage> {
   bool _didInitSocket = false;
 
   static const int port = 8080;
-  static const double deadzone = 0.01;
+  static const double deadzone = 0.05;
+  static const int batchWindowMs = 5;
+  static const int maxBatchSize = 10;
+  static const int joystickRateMs = 16;
 
-  Map<String, Offset> joystickPositions = {
+  final Queue<InputEvent> _inputQueue = Queue();
+  Timer? _batchTimer;
+  Timer? _joystickTimer;
+
+  Map<String, Offset> _joystickPositions = {
     "left": const Offset(0, 0),
     "right": const Offset(0, 0),
   };
 
-  Map<String, DateTime> lastSentTime = {
+  Map<String, bool> _joystickChanged = {
+    "left": false,
+    "right": false,
+  };
+
+  Map<String, DateTime> _lastJoystickSend = {
     "left": DateTime.now(),
     "right": DateTime.now(),
   };
-
-  Timer? idleTimer;
 
   @override
   void initState() {
@@ -45,19 +56,66 @@ class _GamepadPageState extends State<GamepadPage> {
       DeviceOrientation.landscapeRight,
     ]);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-    /*
-    idleTimer = Timer.periodic(const Duration(milliseconds: 200), (_) {
-      for (var side in ['left', 'right']) {
-        final pos = joystickPositions[side]!;
-        final last = lastSentTime[side]!;
-        final now = DateTime.now();
-        if ((pos.dx != 0 || pos.dy != 0) ||
-            now.difference(last).inMilliseconds > 500) {
-          sendMove(side, pos.dx, pos.dy);
-          lastSentTime[side] = now;
+    _startBatchTimer();
+    _startJoystickTimer();
+  }
+
+  void _startBatchTimer() {
+    _batchTimer = Timer.periodic(
+      Duration(milliseconds: batchWindowMs),
+      (_) => _flushBatch(),
+    );
+  }
+
+  void _startJoystickTimer() {
+    _joystickTimer = Timer.periodic(
+      Duration(milliseconds: joystickRateMs),
+      (_) => _sendJoystickUpdates(),
+    );
+  }
+
+  void _sendJoystickUpdates() {
+    final now = DateTime.now();
+    for (var side in ['left', 'right']) {
+      if (_joystickChanged[side] == true) {
+        final pos = _joystickPositions[side]!;
+        final last = _lastJoystickSend[side]!;
+        if (now.difference(last).inMilliseconds >= joystickRateMs) {
+          _queueInput(InputEvent.move(
+            side: side,
+            x: pos.dx,
+            y: pos.dy,
+            timestamp: now.millisecondsSinceEpoch,
+          ));
+          _lastJoystickSend[side] = now;
         }
       }
-    });*/
+    }
+  }
+
+  void _queueInput(InputEvent event) {
+    if (event.type == InputType.button) {
+      sendUDP(event.toBytes());
+      return;
+    }
+
+    if (_inputQueue.length >= maxBatchSize) {
+      _inputQueue.removeFirst();
+    }
+    _inputQueue.addLast(event);
+  }
+
+  void _flushBatch() {
+    if (_inputQueue.isEmpty) return;
+
+    final List<InputEvent> events = List.from(_inputQueue);
+    _inputQueue.clear();
+
+    if (events.length == 1) {
+      sendUDP(events.first.toBytes());
+    } else {
+      sendUDP(encodeBatch(events));
+    }
   }
 
   Future<void> _initSocket() async {
@@ -80,9 +138,7 @@ class _GamepadPageState extends State<GamepadPage> {
       setState(() {
         _isSocketReady = true;
       });
-    } catch (e) {
-      // Socket initialization failed
-    }
+    } catch (e) {}
   }
 
   @override
@@ -97,7 +153,8 @@ class _GamepadPageState extends State<GamepadPage> {
   @override
   void dispose() {
     socket?.close();
-    idleTimer?.cancel();
+    _batchTimer?.cancel();
+    _joystickTimer?.cancel();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     super.dispose();
   }
@@ -110,11 +167,19 @@ class _GamepadPageState extends State<GamepadPage> {
   }
 
   void sendMove(String side, double x, double y) {
-    sendUDP(encodeMove(side, x, y));
+    final now = DateTime.now();
+    _joystickPositions[side] = Offset(x, y);
+    _joystickChanged[side] = true;
+    _lastJoystickSend[side] = now;
   }
 
   void sendButton(String side, int index, bool pressed) {
-    sendUDP(encodeButton(side, index, pressed));
+    _queueInput(InputEvent.button(
+      side: side,
+      index: index,
+      pressed: pressed,
+      timestamp: DateTime.now().millisecondsSinceEpoch,
+    ));
   }
 
   Widget buildJoystick(String side) {
@@ -150,9 +215,6 @@ class _GamepadPageState extends State<GamepadPage> {
           listener: (details) {
             double x = (details.x.abs() < deadzone) ? 0 : details.x;
             double y = (details.y.abs() < deadzone) ? 0 : details.y;
-
-            joystickPositions[side] = Offset(x, y);
-            lastSentTime[side] = DateTime.now();
             sendMove(side, x, y);
           },
         );
@@ -160,8 +222,8 @@ class _GamepadPageState extends State<GamepadPage> {
         if (side == 'left') {
           joystickWidget = GestureDetector(
             onPanEnd: (_) {
-              // Send (0,0) when released
-              joystickPositions[side] = const Offset(0, 0);
+              _joystickPositions[side] = const Offset(0, 0);
+              _joystickChanged[side] = true;
               sendMove(side, 0, 0);
             },
             child: joystickWidget,
@@ -169,7 +231,8 @@ class _GamepadPageState extends State<GamepadPage> {
         } else {
           joystickWidget = GestureDetector(
             onPanEnd: (_) {
-              joystickPositions[side] = const Offset(0, 0);
+              _joystickPositions[side] = const Offset(0, 0);
+              _joystickChanged[side] = true;
               sendMove(side, 0, 0);
             },
             child: joystickWidget,
