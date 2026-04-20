@@ -3,7 +3,7 @@ const dgram = require("dgram");
 const { Server } = require("socket.io");
 const gamepad = require("./gamepad.node");
 const logger = require("./logger");
-const { decodeMessage, isBinaryMessage } = require("./protocol");
+const { decodeMessage } = require("./protocol");
 const config = require("./config");
 
 const cfg = config.getConfig();
@@ -96,26 +96,17 @@ udpServer.on("message", (msg, rinfo) => {
     rinfo.address + ":" + rinfo.port,
   );
 
-  let d;
-  if (isBinaryMessage(msg)) {
-    d = decodeMessage(msg);
-    debugProtocol("Binary decoded:", JSON.stringify(d));
-  } else {
-    try {
-      d = JSON.parse(msg);
-      debugProtocol("JSON decoded:", JSON.stringify(d));
-    } catch (_) {
-      logger.warn("UDP message not valid from %s", rinfo.address);
-      return;
-    }
-  }
+  const d = decodeMessage(msg);
 
   if (!d) {
-    debugProtocol("Decode failed!");
+    debugProtocol("Decode failed or invalid message from %s", rinfo.address);
     return;
   }
 
+  debugProtocol("Decoded message:", JSON.stringify(d));
+
   const { type: t, side, index, x, y, timestamp, events } = d;
+
 
   const clientKey = `${rinfo.address}:${rinfo.port}`;
   let client = clients.get(clientKey);

@@ -1,6 +1,3 @@
-import 'dart:async';
-import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:game_controler/Elements/buttons.dart';
@@ -9,10 +6,10 @@ import 'package:game_controler/Elements/joystick.dart';
 import 'package:game_controler/Elements/middlebutton.dart';
 import 'package:provider/provider.dart';
 import 'package:game_controler/Settings/settingsProvider.dart';
+import 'package:game_controler/Settings/gamepadProvider.dart';
 import 'package:game_controler/Models/custom_layout_model.dart';
 import 'package:game_controler/Elements/status_indicator.dart';
 import '../style.dart';
-import 'package:vibration/vibration.dart';
 
 class CustomController extends StatefulWidget {
   static const routeName = '/custom_controller';
@@ -23,10 +20,7 @@ class CustomController extends StatefulWidget {
 }
 
 class _CustomControllerState extends State<CustomController> {
-  RawDatagramSocket? socket;
-  InternetAddress? serverAddress;
-  bool _isSocketReady = false;
-  static const int port = 8080;
+  bool _didInit = false;
   final Set<String> _pressedButtons = {};
 
   @override
@@ -39,33 +33,18 @@ class _CustomControllerState extends State<CustomController> {
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
   }
 
-  Future<void> _initSocket() async {
-    final settings = Provider.of<SettingsProvider>(context, listen: false);
-    final newIp = settings.ipAddress;
-
-    if (newIp == serverAddress?.address && socket != null) return;
-
-    setState(() => _isSocketReady = false);
-    socket?.close();
-
-    try {
-      serverAddress = InternetAddress(newIp);
-      socket = await RawDatagramSocket.bind(InternetAddress.anyIPv4, 0);
-      setState(() => _isSocketReady = true);
-    } catch (e) {
-      print("Socket error: $e");
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_didInit) {
+      final settings = context.read<SettingsProvider>();
+      context.read<GamepadProvider>().updateServer(settings.ipAddress);
+      _didInit = true;
     }
   }
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _initSocket();
-  }
-
-  @override
   void dispose() {
-    socket?.close();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.portraitUp,
@@ -76,30 +55,11 @@ class _CustomControllerState extends State<CustomController> {
     super.dispose();
   }
 
-  void sendUDP(Map<String, dynamic> data) {
-    if (!_isSocketReady || socket == null || serverAddress == null) return;
-    data['timestamp'] = DateTime.now().millisecondsSinceEpoch;
-    final bytes = utf8.encode(jsonEncode(data));
-    socket!.send(bytes, serverAddress!, port);
-  }
-
-  void sendMove(String side, double x, double y) {
-    sendUDP({"type": "move", "side": side, "x": x, "y": y});
-  }
-
-  void sendButton(String side, int index, bool pressed) {
-    if (pressed) {
-      final settings = Provider.of<SettingsProvider>(context, listen: false);
-      if (settings.hapticFeedbackEnabled) {
-        Vibration.vibrate(duration: 15, amplitude: 128);
-      }
-    }
-
-    sendUDP({
-      "type": pressed ? "button_down" : "button_up",
-      "side": side,
-      "index": index,
-    });
+  void _handleButton(String side, int index, bool pressed) {
+    final settings = context.read<SettingsProvider>();
+    final gamepad = context.read<GamepadProvider>();
+    
+    gamepad.sendButton(side, index, pressed, haptic: settings.hapticFeedbackEnabled);
 
     final key = "${side}_$index";
     setState(() {
@@ -113,13 +73,14 @@ class _CustomControllerState extends State<CustomController> {
 
   @override
   Widget build(BuildContext context) {
-    final settings = Provider.of<SettingsProvider>(context);
+    final settings = context.watch<SettingsProvider>();
+    final isReady = context.watch<GamepadProvider>().isSocketReady;
     final layout = settings.customLayout;
 
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: _isSocketReady
+        child: isReady
             ? LayoutBuilder(builder: (context, constraints) {
                 return Stack(
                   children: [
@@ -129,7 +90,7 @@ class _CustomControllerState extends State<CustomController> {
                         left: 0,
                         right: 0,
                         child: Center(
-                          child: ConnectionStatusIndicator(isConnected: _isSocketReady),
+                          child: ConnectionStatusIndicator(isConnected: isReady),
                         ),
                       ),
                     ...layout.elements.map((element) {
@@ -148,29 +109,30 @@ class _CustomControllerState extends State<CustomController> {
   }
 
   Widget _buildElement(ControlElement element) {
+    final gamepad = context.read<GamepadProvider>();
     switch (element.type) {
       case ControlType.joystick:
         return JoystickWidget(
           side: element.side,
           size: element.size,
-          onMove: (x, y) => sendMove(element.side, x, y),
+          onMove: (x, y) => gamepad.sendMove(element.side, x, y),
         );
       case ControlType.dpad:
         return DPad(
           size: element.size,
           pressedButtons: _pressedButtons,
-          onPressed: (index, pressed) => sendButton(element.side, index, pressed),
+          onPressed: (index, pressed) => _handleButton(element.side, index, pressed),
         );
       case ControlType.faceButtons:
         return FaceButtons(
           size: element.size,
           pressedButtons: _pressedButtons,
-          onPressed: (index, pressed) => sendButton(element.side, index, pressed),
+          onPressed: (index, pressed) => _handleButton(element.side, index, pressed),
         );
       case ControlType.middleButtons:
         return MiddleButtons(
           pressedButtons: _pressedButtons,
-          onPressed: (index, pressed) => sendButton(index < 9 ? 'left' : 'right', index, pressed),
+          onPressed: (index, pressed) => _handleButton(index < 9 ? 'left' : 'right', index, pressed),
         );
       case ControlType.bumper:
         return _buildBumper(element);
@@ -183,9 +145,9 @@ class _CustomControllerState extends State<CustomController> {
     final isPressed = _pressedButtons.contains(key);
 
     return GestureDetector(
-      onTapDown: (_) => sendButton(element.side, index, true),
-      onTapUp: (_) => sendButton(element.side, index, false),
-      onTapCancel: () => sendButton(element.side, index, false),
+      onTapDown: (_) => _handleButton(element.side, index, true),
+      onTapUp: (_) => _handleButton(element.side, index, false),
+      onTapCancel: () => _handleButton(element.side, index, false),
       child: Container(
         width: element.size,
         height: element.size * 0.4,

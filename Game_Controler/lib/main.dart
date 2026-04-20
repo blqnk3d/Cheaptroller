@@ -3,7 +3,7 @@ import 'package:game_controler/Controller_Layouts/Playstation_Controller.dart';
 import 'package:game_controler/Controller_Layouts/XBox_Controller.dart';
 import 'package:game_controler/Controller_Layouts/Custom_Controller.dart';
 import 'package:game_controler/Controller_Layouts/Custom_Controller_Editor.dart';
-import 'package:game_controler/Settings/settingsProvider.dart';
+import 'package:game_controler/Settings/gamepadProvider.dart';
 import 'package:provider/provider.dart';
 
 import 'startpage.dart';
@@ -12,8 +12,11 @@ import 'style.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   runApp(
-    ChangeNotifierProvider(
-      create: (_) => SettingsProvider(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => SettingsProvider()),
+        ChangeNotifierProvider(create: (_) => GamepadProvider()),
+      ],
       child: const MyApp(),
     ),
   );

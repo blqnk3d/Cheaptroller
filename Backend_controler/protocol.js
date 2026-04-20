@@ -107,21 +107,8 @@ function decodeMessage(buffer) {
   }
 }
 
-function isBinaryMessage(buffer) {
-  if (!buffer || buffer.length === 0) return false;
-  const firstByte = buffer instanceof Buffer ? buffer[0] : buffer[0];
-  return (
-    firstByte === MSG_TYPES.MOVE ||
-    firstByte === MSG_TYPES.BUTTON_DOWN ||
-    firstByte === MSG_TYPES.BUTTON_UP ||
-    firstByte === MSG_TYPES.HEARTBEAT ||
-    firstByte === MSG_TYPES.BATCH
-  );
-}
-
 module.exports = {
   MSG_TYPES,
   SIDES,
   decodeMessage,
-  isBinaryMessage,
 };

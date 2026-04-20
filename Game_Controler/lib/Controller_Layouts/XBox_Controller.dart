@@ -1,7 +1,4 @@
-// lib/Xbox_Controller.dart
 import 'dart:async';
-import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:game_controler/Elements/buttons.dart';
@@ -10,11 +7,10 @@ import 'package:game_controler/Elements/joystick.dart';
 import 'package:game_controler/Elements/middlebutton.dart';
 import 'package:game_controler/Elements/status_indicator.dart';
 import 'package:game_controler/Settings/settingsProvider.dart';
+import 'package:game_controler/Settings/gamepadProvider.dart';
 import 'package:provider/provider.dart';
 import '../style.dart';
-
 import 'package:sensors_plus/sensors_plus.dart';
-import 'package:vibration/vibration.dart';
 
 class Xbox_Controller extends StatefulWidget {
   static const routeName = '/xbox_controller';
@@ -26,18 +22,12 @@ class Xbox_Controller extends StatefulWidget {
 
 class _Xbox_ControllerState extends State<Xbox_Controller> {
   static const double scaleFactor = 1.128;
+  bool _didInit = false;
 
-  RawDatagramSocket? socket;
-  InternetAddress? serverAddress;
-  bool _isSocketReady = false;
-  bool _didInitSocket = false;
-
-  static const int port = 8080;
   final Set<String> _pressedButtons = {};
   
-  // Gesture debouncing - prevent rapid fire updates
   final Map<String, DateTime> _lastButtonTime = {};
-  static const int _gestureDebounceMs = 16;  // 16ms = 60fps safe
+  static const int _gestureDebounceMs = 16;
 
   StreamSubscription<AccelerometerEvent>? _accelerometerSubscription;
   double _lastGyroX = 0;
@@ -50,59 +40,36 @@ class _Xbox_ControllerState extends State<Xbox_Controller> {
       DeviceOrientation.landscapeRight,
     ]);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-    _initGyro();
   }
 
   void _initGyro() {
-    final settings = Provider.of<SettingsProvider>(context, listen: false);
+    final settings = context.read<SettingsProvider>();
+    final gamepad = context.read<GamepadProvider>();
+    
     if (settings.gyroSteeringEnabled) {
       _accelerometerSubscription = accelerometerEvents.listen((AccelerometerEvent event) {
-        // In landscape, we use Y-axis for left/right steering (tilt)
-        // Adjust sensitivity and range
         double steering = (event.y / 7.0).clamp(-1.0, 1.0);
-        
-        // Only send if it changed significantly to reduce UDP traffic
         if ((steering - _lastGyroX).abs() > 0.02) {
           _lastGyroX = steering;
-          sendMove('left', steering, 0); // Steering usually maps to Left Stick X
+          gamepad.sendMove('left', steering, 0);
         }
       });
-    }
-  }
-
-  Future<void> _initSocket() async {
-    final settings = Provider.of<SettingsProvider>(context, listen: false);
-    final newIp = settings.ipAddress;
-
-    // Only reinitialize if IP changed
-    if (newIp == serverAddress?.address && socket != null && _isSocketReady) {
-      return;
-    }
-
-    setState(() => _isSocketReady = false);
-    socket?.close();
-
-    try {
-      serverAddress = InternetAddress(newIp);
-      socket = await RawDatagramSocket.bind(InternetAddress.anyIPv4, 0);
-      setState(() => _isSocketReady = true);
-    } catch (e) {
-      // Socket initialization failed
     }
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (!_didInitSocket) {
-      _initSocket();
-      _didInitSocket = true;
+    if (!_didInit) {
+      final settings = context.read<SettingsProvider>();
+      context.read<GamepadProvider>().updateServer(settings.ipAddress);
+      _initGyro();
+      _didInit = true;
     }
   }
 
   @override
   void dispose() {
-    socket?.close();
     _accelerometerSubscription?.cancel();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     SystemChrome.setPreferredOrientations([
@@ -114,44 +81,19 @@ class _Xbox_ControllerState extends State<Xbox_Controller> {
     super.dispose();
   }
 
-  void sendUDP(Map<String, dynamic> data) {
-    if (!_isSocketReady || socket == null || serverAddress == null) return;
-    
-    // Add timestamp for backend latency measurement
-    data['timestamp'] = DateTime.now().millisecondsSinceEpoch;
-    
-    final bytes = utf8.encode(jsonEncode(data));
-    socket!.send(bytes, serverAddress!, port);
-  }
-
-  void sendMove(String side, double x, double y) {
-    sendUDP({"type": "move", "side": side, "x": x, "y": y});
-  }
-
-  void sendButton(String side, int index, bool pressed) {
+  void _handleButton(String side, int index, bool pressed) {
     final key = "${side}_$index";
-    
-    // Debounce rapid fire gestures
     final now = DateTime.now();
     final lastTime = _lastButtonTime[key] ?? DateTime.now().subtract(const Duration(seconds: 1));
     if (now.difference(lastTime).inMilliseconds < _gestureDebounceMs) {
-      return;  // Skip this update, too soon
+      return;
     }
     _lastButtonTime[key] = now;
     
-    // Haptic Feedback
-    if (pressed) {
-      final settings = Provider.of<SettingsProvider>(context, listen: false);
-      if (settings.hapticFeedbackEnabled) {
-        Vibration.vibrate(duration: 15, amplitude: 128);
-      }
-    }
-
-    sendUDP({
-      "type": pressed ? "button_down" : "button_up",
-      "side": side,
-      "index": index,
-    });
+    final settings = context.read<SettingsProvider>();
+    final gamepad = context.read<GamepadProvider>();
+    
+    gamepad.sendButton(side, index, pressed, haptic: settings.hapticFeedbackEnabled);
 
     setState(() {
       if (pressed) {
@@ -164,20 +106,21 @@ class _Xbox_ControllerState extends State<Xbox_Controller> {
 
   Widget buildJoystick(String side, double size) {
     final int bottomBumperIndex = side == 'left' ? 6 : 7;
+    final gamepad = context.read<GamepadProvider>();
     return GestureDetector(
       onDoubleTap: () {
         Future.delayed(const Duration(milliseconds: 150), () {
-          sendButton(side, bottomBumperIndex, true);
+          _handleButton(side, bottomBumperIndex, true);
           Future.delayed(const Duration(milliseconds: 100), () {
-            sendButton(side, bottomBumperIndex, false);
+            _handleButton(side, bottomBumperIndex, false);
           });
         });
       },
       child: JoystickWidget(
         side: side,
         size: size,
-        onMove: (x, y) => sendMove(side, x, y),
-        scaleFactor: scaleFactor ,
+        onMove: (x, y) => gamepad.sendMove(side, x, y),
+        scaleFactor: scaleFactor,
       ),
     );
   }
@@ -185,15 +128,13 @@ class _Xbox_ControllerState extends State<Xbox_Controller> {
   Widget _topButton(String label, int index, String side) {
     final key = "${side}_$index";
     final isPressed = _pressedButtons.contains(key);
-
-    // Keep View/Menu buttons unchanged
     final bool isCenterButton = label == "View" || label == "Menu";
     final double scale = isCenterButton ? 1.0 : scaleFactor;
 
     return GestureDetector(
-      onTapDown: (_) => sendButton(side, index, true),
-      onTapUp: (_) => sendButton(side, index, false),
-      onTapCancel: () => sendButton(side, index, false),
+      onTapDown: (_) => _handleButton(side, index, true),
+      onTapUp: (_) => _handleButton(side, index, false),
+      onTapCancel: () => _handleButton(side, index, false),
       child: Container(
         padding: EdgeInsets.symmetric(vertical: 6 * scale, horizontal: 14 * scale),
         decoration: BoxDecoration(
@@ -210,29 +151,24 @@ class _Xbox_ControllerState extends State<Xbox_Controller> {
   }
 
   Widget _buildTopBumpers(double width) {
-    final settings = Provider.of<SettingsProvider>(context);
+    final settings = context.watch<SettingsProvider>();
+    final isReady = context.watch<GamepadProvider>().isSocketReady;
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: width * 0, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 6),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           _topButton('LB', 4, 'left'),
-          if (settings.showConnectionStatus) ConnectionStatusIndicator(isConnected: _isSocketReady),
+          if (settings.showConnectionStatus) ConnectionStatusIndicator(isConnected: isReady),
           _topButton('RB', 5, 'right'),
         ],
       ),
     );
   }
 
-  Widget _centerButtons() {
-    return MiddleButtons(
-      pressedButtons: _pressedButtons,
-      onPressed: (index, pressed) => sendButton(index < 9 ? 'left' : 'right', index, pressed),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
+    final isReady = context.watch<GamepadProvider>().isSocketReady;
     final size = MediaQuery.of(context).size;
     final height = size.height;
     final width = size.width;
@@ -240,7 +176,7 @@ class _Xbox_ControllerState extends State<Xbox_Controller> {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: _isSocketReady
+        child: isReady
             ? Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                 child: Column(
@@ -264,7 +200,7 @@ class _Xbox_ControllerState extends State<Xbox_Controller> {
                                     child: DPad(
                                       size: height * 0.32,
                                       pressedButtons: _pressedButtons,
-                                      onPressed: (index, pressed) => sendButton('left', index, pressed),
+                                      onPressed: (index, pressed) => _handleButton('left', index, pressed),
                                       scaleFactor: scaleFactor,
                                     ),
                                   ),
@@ -272,7 +208,12 @@ class _Xbox_ControllerState extends State<Xbox_Controller> {
                               ),
                               Column(
                                 mainAxisSize: MainAxisSize.min,
-                                children: [_centerButtons()],
+                                children: [
+                                  MiddleButtons(
+                                    pressedButtons: _pressedButtons,
+                                    onPressed: (index, pressed) => _handleButton(index < 9 ? 'left' : 'right', index, pressed),
+                                  )
+                                ],
                               ),
                               Column(
                                 children: [
@@ -280,7 +221,7 @@ class _Xbox_ControllerState extends State<Xbox_Controller> {
                                     size: height * 0.32,
                                     scaleFactor: scaleFactor,
                                     pressedButtons: _pressedButtons,
-                                    onPressed: (index, pressed) => sendButton('right', index, pressed),
+                                    onPressed: (index, pressed) => _handleButton('right', index, pressed),
                                   ),
                                   const SizedBox(height: 28),
                                   Padding(
