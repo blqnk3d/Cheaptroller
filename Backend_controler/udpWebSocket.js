@@ -114,7 +114,7 @@ udpServer.on("message", (msg, rinfo) => {
 
   const { type: t, side, index, x, y, timestamp, events } = d;
 
-  const clientKey = rinfo.address;
+  const clientKey = `${rinfo.address}:${rinfo.port}`;
   let client = clients.get(clientKey);
 
   if (!client) {
