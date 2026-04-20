@@ -4,6 +4,7 @@ import 'package:game_controler/Controller_Layouts/XBox_Controller.dart';
 import 'package:game_controler/Controller_Layouts/Custom_Controller.dart';
 import 'package:game_controler/Controller_Layouts/Custom_Controller_Editor.dart';
 import 'package:game_controler/Settings/settingsProvider.dart';
+import 'package:game_controler/Controllers/controllerProvider.dart';
 import 'package:provider/provider.dart';
 
 import 'startpage.dart';
@@ -11,9 +12,16 @@ import 'style.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  final settings = SettingsProvider();
+  final controller = ControllerProvider();
+  await controller.init(settings);
+
   runApp(
-    ChangeNotifierProvider(
-      create: (_) => SettingsProvider(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider.value(value: settings),
+        ChangeNotifierProvider.value(value: controller),
+      ],
       child: const MyApp(),
     ),
   );

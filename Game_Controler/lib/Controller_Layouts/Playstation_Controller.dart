@@ -1,7 +1,5 @@
 // lib/Playstation_controler.dart
 import 'dart:async';
-import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:game_controler/Elements/buttons.dart';
@@ -11,6 +9,7 @@ import 'package:game_controler/Elements/middlebutton.dart';
 import 'package:game_controler/Elements/status_indicator.dart';
 import 'package:provider/provider.dart';
 import 'package:game_controler/Settings/settingsProvider.dart';
+import 'package:game_controler/Controllers/controllerProvider.dart';
 import '../style.dart';
 
 import 'package:sensors_plus/sensors_plus.dart';
@@ -26,11 +25,6 @@ class Playstation_Controller extends StatefulWidget {
 
 class _Playstation_ControllerState extends State<Playstation_Controller> {
   static const double scaleFactor = 1.10;
-  RawDatagramSocket? socket;
-  InternetAddress? serverAddress;
-  bool _isSocketReady = false;
-
-  static const int port = 8080;
 
   final Set<String> _pressedButtons = {};
 
@@ -45,51 +39,24 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
       DeviceOrientation.landscapeRight,
     ]);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-    _initGyro();
   }
 
-  void _initGyro() {
+  void _initGyro(ControllerProvider controller) {
     final settings = Provider.of<SettingsProvider>(context, listen: false);
     if (settings.gyroSteeringEnabled) {
       _accelerometerSubscription = accelerometerEvents.listen((AccelerometerEvent event) {
-        // In landscape, we use Y-axis for left/right steering (tilt)
         double steering = (event.y / 7.0).clamp(-1.0, 1.0);
         
         if ((steering - _lastGyroX).abs() > 0.02) {
           _lastGyroX = steering;
-          sendMove('left', steering, 0);
+          controller.sendMove('left', steering, 0);
         }
       });
     }
   }
 
-  Future<void> _initSocket() async {
-    final settings = Provider.of<SettingsProvider>(context, listen: false);
-    final newIp = settings.ipAddress;
-
-    if (newIp == serverAddress?.address && socket != null) return;
-
-    setState(() => _isSocketReady = false);
-    socket?.close();
-
-    try {
-      serverAddress = InternetAddress(newIp);
-      socket = await RawDatagramSocket.bind(InternetAddress.anyIPv4, 0);
-      setState(() => _isSocketReady = true);
-    } catch (e) {
-      print("Socket error: $e");
-    }
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _initSocket();
-  }
-
   @override
   void dispose() {
-    socket?.close();
     _accelerometerSubscription?.cancel();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     SystemChrome.setPreferredOrientations([
@@ -101,22 +68,7 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
     super.dispose();
   }
 
-  void sendUDP(Map<String, dynamic> data) {
-    if (!_isSocketReady || socket == null || serverAddress == null) return;
-    
-    // Add timestamp for backend latency measurement
-    data['timestamp'] = DateTime.now().millisecondsSinceEpoch;
-    
-    final bytes = utf8.encode(jsonEncode(data));
-    socket!.send(bytes, serverAddress!, port);
-  }
-
-  void sendMove(String side, double x, double y) {
-    sendUDP({"type": "move", "side": side, "x": x, "y": y});
-  }
-
-  void sendButton(String side, int index, bool pressed) {
-    // Haptic Feedback
+  void sendButton(ControllerProvider controller, String side, int index, bool pressed) {
     if (pressed) {
       final settings = Provider.of<SettingsProvider>(context, listen: false);
       if (settings.hapticFeedbackEnabled) {
@@ -124,11 +76,7 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
       }
     }
 
-    sendUDP({
-      "type": pressed ? "button_down" : "button_up",
-      "side": side,
-      "index": index,
-    });
+    controller.sendButton(side, index, pressed);
 
     final key = "${side}_$index";
     setState(() {
@@ -140,15 +88,15 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
     });
   }
 
-  Widget buildJoystick(String side, double size) {
+  Widget buildJoystick(ControllerProvider controller, String side, double size) {
     final int bottomBumperIndex = side == 'left' ? 6 : 7;
 
     return GestureDetector(
       onDoubleTap: () {
         Future.delayed(const Duration(milliseconds: 150), () {
-          sendButton(side, bottomBumperIndex, true);
+          sendButton(controller, side, bottomBumperIndex, true);
           Future.delayed(const Duration(milliseconds: 100), () {
-            sendButton(side, bottomBumperIndex, false);
+            sendButton(controller, side, bottomBumperIndex, false);
           });
         });
       },
@@ -156,156 +104,146 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
         side: side,
         size: size,
         scaleFactor: scaleFactor,
-        onMove: (x, y) => sendMove(side, x, y),
+        onMove: (x, y) => controller.sendMove(side, x, y),
       ),
     );
   }
 
-  Widget _buildTopBumpers(double width) {
+  Widget _buildTopBumpers(ControllerProvider controller, double width) {
     final settings = Provider.of<SettingsProvider>(context);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          _topButton('LB', 4, 'left'),
-          if (settings.showConnectionStatus) ConnectionStatusIndicator(isConnected: _isSocketReady),
-          _topButton('RB', 5, 'right'),
+          GestureDetector(
+            onTapDown: (_) => sendButton(controller, 'left', 4, true),
+            onTapUp: (_) => sendButton(controller, 'left', 4, false),
+            onTapCancel: () => sendButton(controller, 'left', 4, false),
+            child: Container(
+              padding: EdgeInsets.symmetric(vertical: 5 * scaleFactor, horizontal: 12 * scaleFactor),
+              decoration: BoxDecoration(
+                color: AppColors.cardBackground,
+                borderRadius: BorderRadius.circular(10 * scaleFactor),
+                border: Border.all(color: AppColors.textPrimary, width: 1.5 * scaleFactor),
+              ),
+              child: Text('LB', style: AppTextStyles.body.copyWith(fontSize: 13 * scaleFactor)),
+            ),
+          ),
+          if (settings.showConnectionStatus) ConnectionStatusIndicator(isConnected: controller.isConnected),
+          GestureDetector(
+            onTapDown: (_) => sendButton(controller, 'right', 5, true),
+            onTapUp: (_) => sendButton(controller, 'right', 5, false),
+            onTapCancel: () => sendButton(controller, 'right', 5, false),
+            child: Container(
+              padding: EdgeInsets.symmetric(vertical: 5 * scaleFactor, horizontal: 12 * scaleFactor),
+              decoration: BoxDecoration(
+                color: AppColors.cardBackground,
+                borderRadius: BorderRadius.circular(10 * scaleFactor),
+                border: Border.all(color: AppColors.textPrimary, width: 1.5 * scaleFactor),
+              ),
+              child: Text('RB', style: AppTextStyles.body.copyWith(fontSize: 13 * scaleFactor)),
+            ),
+          ),
         ],
-      ),
-    );
-  }
-
-  Widget _topButton(String label, int index, String side) {
-    final key = "${side}_$index";
-    final isPressed = _pressedButtons.contains(key);
-    final bool isCenterButton = label == "View" || label == "Menu";
-    final double scale = isCenterButton ? 1.0 : scaleFactor;
-
-    return GestureDetector(
-      onTapDown: (_) => sendButton(side, index, true),
-      onTapUp: (_) => sendButton(side, index, false),
-      onTapCancel: () => sendButton(side, index, false),
-      child: Container(
-        padding: EdgeInsets.symmetric(
-          vertical: 5 * scale,
-          horizontal: 12 * scale,
-        ),
-        decoration: BoxDecoration(
-          color:
-              isPressed
-                  ? Colors.greenAccent.withValues(alpha: 0.5)
-                  : AppColors.cardBackground,
-          borderRadius: BorderRadius.circular(10 * scale),
-          border: Border.all(color: AppColors.textPrimary, width: 1.5 * scale),
-        ),
-        child: Text(
-          label,
-          style: AppTextStyles.body.copyWith(fontSize: 13 * scale),
-        ),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final controller = Provider.of<ControllerProvider>(context);
+    final settings = Provider.of<SettingsProvider>(context, listen: false);
     final size = MediaQuery.of(context).size;
     final height = size.height;
     final width = size.width;
 
+    if (_accelerometerSubscription == null && settings.gyroSteeringEnabled) {
+      _initGyro(controller);
+    }
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child:
-            _isSocketReady
-                ? Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 6,
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      _buildTopBumpers(width),
-                      Expanded(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: [
-                            // DPad + Face Buttons
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                Padding(
-                                  padding: EdgeInsets.only(left: width * 0.04),
-                                  child: DPad(
-                                    size: height * 0.34,
+        child: controller.isConnected
+            ? Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _buildTopBumpers(controller, width),
+                    Expanded(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Padding(
+                                padding: EdgeInsets.only(left: width * 0.04),
+                                child: DPad(
+                                  size: height * 0.34,
+                                  scaleFactor: scaleFactor,
+                                  pressedButtons: _pressedButtons,
+                                  onPressed: (index, pressed) => sendButton(controller, 'left', index, pressed),
+                                ),
+                              ),
+                              Padding(
+                                padding: EdgeInsets.only(right: width * 0.04),
+                                child: FaceButtons(
+                                  size: height * 0.36,
+                                  scaleFactor: scaleFactor,
+                                  pressedButtons: _pressedButtons,
+                                  onPressed: (index, pressed) => sendButton(controller, 'right', index, pressed),
+                                ),
+                              ),
+                            ],
+                          ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Padding(
+                                padding: EdgeInsets.only(left: width * 0.10),
+                                child: buildJoystick(controller, 'left', height * 0.38),
+                              ),
+                              Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  MiddleButtons(
                                     scaleFactor: scaleFactor,
                                     pressedButtons: _pressedButtons,
-                                    onPressed:
-                                        (index, pressed) =>
-                                            sendButton('left', index, pressed),
-                                  ),
-                                ),
-                                Padding(
-                                  padding: EdgeInsets.only(right: width * 0.04),
-                                  child: FaceButtons(
-                                    size: height * 0.36,
-                                    scaleFactor: scaleFactor,
-                                    pressedButtons: _pressedButtons,
-                                    onPressed:
-                                        (index, pressed) =>
-                                            sendButton('right', index, pressed),
-                                  ),
-                                ),
-                              ],
-                            ),
-
-                            // Joysticks + Middle Buttons
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Padding(
-                                  padding: EdgeInsets.only(left: width * 0.10),
-                                  child: buildJoystick('left', height * 0.38),
-                                ),
-                                Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    MiddleButtons(
-                                      scaleFactor: scaleFactor,
-                                      pressedButtons: _pressedButtons,
-                                      onPressed:
-                                          (index, pressed) => sendButton(
-                                            index < 9 ? 'left' : 'right',
-                                            index,
-                                            pressed,
-                                          ),
+                                    onPressed: (index, pressed) => sendButton(
+                                      controller,
+                                      index < 9 ? 'left' : 'right',
+                                      index,
+                                      pressed,
                                     ),
-                                  ],
-                                ),
-                                Padding(
-                                  padding: EdgeInsets.only(right: width * 0.10),
-                                  child: buildJoystick('right', height * 0.38),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
+                                  ),
+                                ],
+                              ),
+                              Padding(
+                                padding: EdgeInsets.only(right: width * 0.10),
+                                child: buildJoystick(controller, 'right', height * 0.38),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                )
-                : const Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      CircularProgressIndicator(),
-                      SizedBox(height: 12),
-                      Text("Connecting..."),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
+              )
+            : const Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(height: 12),
+                    Text("Connecting..."),
+                  ],
+                ),
+              ),
       ),
     );
   }
