@@ -16,6 +16,8 @@ jobs:
   build-backend:
     name: Build Backend
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     defaults:
       run:
         working-directory: ./Backend_controler
@@ -45,6 +47,8 @@ jobs:
   build-frontend:
     name: Build Frontend (APK)
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     defaults:
       run:
         working-directory: ./Game_Controler
@@ -75,6 +79,8 @@ jobs:
     name: Create Release
     needs: [build-backend, build-frontend]
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Download Backend Artifact
         uses: actions/download-artifact@v4
