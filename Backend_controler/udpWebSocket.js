@@ -25,10 +25,10 @@ const clients = new Map();
 
 const STICK_DEADZONE = 0.05; // Slight increase to 5% to be safe
 
-const CLIENT_TIMEOUT_MS = 10000; // Close controller after 10 seconds of no data
+const CLIENT_TIMEOUT_MS = 1000 * 60 * 5; // Close controller after 5 min seconds of no data
 
 // High-priority buttons (fastest response needed)
-const PRIORITY_BUTTONS = new Set([0, 1, 2, 3]); // A, B, X, Y
+const _PRIORITY_BUTTONS = new Set([0, 1, 2, 3]); // A, B, X, Y
 
 // DPAD lookup
 const DPAD_INDICES = new Set([10, 11, 12, 13]);
@@ -91,7 +91,12 @@ const udpServer = dgram.createSocket("udp4");
 udpServer.on("message", (msg, rinfo) => {
   if (shuttingDown) return;
 
-  debugProtocol("Received", msg.length, "bytes from", rinfo.address + ":" + rinfo.port);
+  debugProtocol(
+    "Received",
+    msg.length,
+    "bytes from",
+    rinfo.address + ":" + rinfo.port,
+  );
 
   let d;
   if (isBinaryMessage(msg)) {
@@ -101,7 +106,7 @@ udpServer.on("message", (msg, rinfo) => {
     try {
       d = JSON.parse(msg);
       debugProtocol("JSON decoded:", JSON.stringify(d));
-    } catch (e) {
+    } catch (_) {
       logger.warn("UDP message not valid from %s", rinfo.address);
       return;
     }
@@ -169,8 +174,8 @@ function processEvent(client, d) {
   const { type: t, side, index, x, y } = d;
 
   if (t === "move" && (side === "left" || side === "right")) {
-    let xVal = Math.abs(x || 0) < STICK_DEADZONE ? 0 : x || 0;
-    let yVal = Math.abs(y || 0) < STICK_DEADZONE ? 0 : y || 0;
+    const xVal = Math.abs(x || 0) < STICK_DEADZONE ? 0 : x || 0;
+    const yVal = Math.abs(y || 0) < STICK_DEADZONE ? 0 : y || 0;
 
     const stickCache = client.stickState[side];
     if (stickCache.x !== xVal || stickCache.y !== yVal) {
@@ -220,7 +225,7 @@ udpServer.on("error", (err) => {
   logger.error("UDP server error: %o", err);
   try {
     udpServer.close();
-  } catch (e) {}
+  } catch (_) {}
 });
 
 function startUdpServer(port = UDP_PORT) {
@@ -228,7 +233,7 @@ function startUdpServer(port = UDP_PORT) {
     try {
       udpServer.setRecvBufferSize(1024 * 256);
       udpServer.setSendBufferSize(1024 * 256);
-    } catch (e) {}
+    } catch (_) {}
     logger.info("UDP running on %s", port);
   });
 
@@ -238,7 +243,9 @@ function startUdpServer(port = UDP_PORT) {
       if (now - client.lastSeen > CLIENT_TIMEOUT_MS) {
         try {
           gamepad.close(client.id);
-          logger.info(`🗑️  Closed stale controller ${client.id} for ${key} (no data for ${CLIENT_TIMEOUT_MS}ms)`);
+          logger.info(
+            `🗑️  Closed stale controller ${client.id} for ${key} (no data for ${CLIENT_TIMEOUT_MS}ms)`,
+          );
         } catch (e) {
           logger.error(`Error closing controller ${client.id}:`, e);
         }
@@ -281,11 +288,11 @@ function stopUdpServer() {
   shuttingDown = true;
   try {
     udpServer.close();
-  } catch (e) {}
+  } catch (_) {}
   if (ioInstance) {
     try {
       ioInstance.close();
-    } catch (e) {}
+    } catch (_) {}
   }
   closeAllControllers();
 }
