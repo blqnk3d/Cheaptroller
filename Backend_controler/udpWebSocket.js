@@ -3,17 +3,29 @@ const dgram = require("dgram");
 const { Server } = require("socket.io");
 const gamepad = require("./gamepad.node");
 const logger = require("./logger");
+const { decodeMessage, isBinaryMessage } = require("./protocol");
 
 // UDP
 const UDP_PORT = 8080;
 let ioInstance = null;
 let shuttingDown = false;
 
+// Debug logging for protocol
+const DEBUG_PROTOCOL = process.env.DEBUG_PROTOCOL === "1";
+
+function debugProtocol(...args) {
+  if (DEBUG_PROTOCOL) {
+    console.log("[PROTOCOL]", ...args);
+  }
+}
+
 // Client management
 // Map<string, Object> where key is "ip:port"
 const clients = new Map();
 
 const STICK_DEADZONE = 0.05; // Slight increase to 5% to be safe
+
+const CLIENT_TIMEOUT_MS = 10000; // Close controller after 10 seconds of no data
 
 // High-priority buttons (fastest response needed)
 const PRIORITY_BUTTONS = new Set([0, 1, 2, 3]); // A, B, X, Y
@@ -79,33 +91,40 @@ const udpServer = dgram.createSocket("udp4");
 udpServer.on("message", (msg, rinfo) => {
   if (shuttingDown) return;
 
+  debugProtocol("Received", msg.length, "bytes from", rinfo.address + ":" + rinfo.port);
+
   let d;
-  try {
-    d = JSON.parse(msg);
-  } catch (e) {
-    logger.warn("UDP message not JSON from %s", rinfo.address);
+  if (isBinaryMessage(msg)) {
+    d = decodeMessage(msg);
+    debugProtocol("Binary decoded:", JSON.stringify(d));
+  } else {
+    try {
+      d = JSON.parse(msg);
+      debugProtocol("JSON decoded:", JSON.stringify(d));
+    } catch (e) {
+      logger.warn("UDP message not valid from %s", rinfo.address);
+      return;
+    }
+  }
+
+  if (!d) {
+    debugProtocol("Decode failed!");
     return;
   }
 
-  const { type: t, side, index, x, y, timestamp } = d || {};
-  if (!t) return;
+  const { type: t, side, index, x, y, timestamp, events } = d;
 
-  // 1. Identify Client
   const clientKey = `${rinfo.address}:${rinfo.port}`;
   let client = clients.get(clientKey);
 
-  // 2. Register new client if needed
   if (!client) {
     try {
-      // Create a new virtual controller for this client
       const controllerId = gamepad.create();
 
       client = {
         id: controllerId,
         address: rinfo.address,
-        port: rinfo.port,
         lastSeen: Date.now(),
-        // Isolated state for this controller
         stickState: { left: { x: 0, y: 0 }, right: { x: 0, y: 0 } },
         buttonState: new Array(14).fill(false),
         dpadState: { up: false, down: false, left: false, right: false },
@@ -121,10 +140,8 @@ udpServer.on("message", (msg, rinfo) => {
     }
   }
 
-  // Update last seen
   client.lastSeen = Date.now();
 
-  // 3. Handle Latency
   if (timestamp && typeof timestamp === "number" && timestamp > 0) {
     const latencyMs = Date.now() - timestamp;
     if (latencyMs >= 0 && latencyMs < 2000) {
@@ -132,9 +149,25 @@ udpServer.on("message", (msg, rinfo) => {
     }
   }
 
-  // 4. Process Inputs using Client's ID and State
+  if (t === "batch" && events) {
+    debugProtocol("Processing BATCH with", events.length, "events");
+    for (const event of events) {
+      processEvent(client, event);
+    }
+    return;
+  }
 
-  // --- STICK MOVEMENT ---
+  debugProtocol("Processing single event:", t, side, index, x, y);
+  processEvent(client, { type: t, side, index, x, y, timestamp });
+
+  if (t === "ip_update" && d.ip) {
+    logger.info("Received IP update from %s: %s", rinfo.address, d.ip);
+  }
+});
+
+function processEvent(client, d) {
+  const { type: t, side, index, x, y } = d;
+
   if (t === "move" && (side === "left" || side === "right")) {
     let xVal = Math.abs(x || 0) < STICK_DEADZONE ? 0 : x || 0;
     let yVal = Math.abs(y || 0) < STICK_DEADZONE ? 0 : y || 0;
@@ -143,7 +176,6 @@ udpServer.on("message", (msg, rinfo) => {
     if (stickCache.x !== xVal || stickCache.y !== yVal) {
       stickCache.x = xVal;
       stickCache.y = yVal;
-      // Pass client.id to moveStick
       gamepad.moveStick(
         client.id,
         side,
@@ -154,44 +186,34 @@ udpServer.on("message", (msg, rinfo) => {
     return;
   }
 
-  // --- BUTTON PRESSES ---
   if (t === "button_down" || t === "button_up") {
     const pressed = t === "button_down";
     const idx = typeof index === "string" ? parseInt(index, 10) : index;
     if (!Number.isInteger(idx) || idx < 0 || idx > 13) return;
 
-    // Standard Buttons
     const buttonStr = BUTTON_MAP[idx];
     if (buttonStr) {
       if (client.buttonState[idx] !== pressed) {
         client.buttonState[idx] = pressed;
-        // Pass client.id to pressButton
         gamepad.pressButton(client.id, buttonStr, pressed);
       }
       return;
     }
 
-    // D-Pad
     if (DPAD_INDICES.has(idx)) {
-      const dir = DPAD_MAP[idx]; // 'up', 'down', 'left', 'right'
+      const dir = DPAD_MAP[idx];
       if (dir && client.dpadState[dir] !== pressed) {
         client.dpadState[dir] = pressed;
 
-        // Calculate new composite D-Pad axis
         const dX = client.dpadState.left ? -1 : client.dpadState.right ? 1 : 0;
         const dY = client.dpadState.up ? -1 : client.dpadState.down ? 1 : 0;
 
-        // Pass client.id to moveDpad
         gamepad.moveDpad(client.id, dX, dY);
       }
       return;
     }
   }
-
-  if (t === "ip_update" && d.ip) {
-    logger.info("Received IP update from %s: %s", rinfo.address, d.ip);
-  }
-});
+}
 
 // Error handling
 udpServer.on("error", (err) => {
@@ -209,6 +231,21 @@ function startUdpServer(port = UDP_PORT) {
     } catch (e) {}
     logger.info("UDP running on %s", port);
   });
+
+  setInterval(() => {
+    const now = Date.now();
+    for (const [key, client] of clients) {
+      if (now - client.lastSeen > CLIENT_TIMEOUT_MS) {
+        try {
+          gamepad.close(client.id);
+          logger.info(`🗑️  Closed stale controller ${client.id} for ${key} (no data for ${CLIENT_TIMEOUT_MS}ms)`);
+        } catch (e) {
+          logger.error(`Error closing controller ${client.id}:`, e);
+        }
+        clients.delete(key);
+      }
+    }
+  }, 2000);
 }
 
 function initSocketIO(httpServer) {
