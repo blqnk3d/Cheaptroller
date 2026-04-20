@@ -1,7 +1,7 @@
 // lib/Playstation_controler.dart
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:game_controler/Elements/buttons.dart';
@@ -11,6 +11,7 @@ import 'package:game_controler/Elements/middlebutton.dart';
 import 'package:game_controler/Elements/status_indicator.dart';
 import 'package:provider/provider.dart';
 import 'package:game_controler/Settings/settingsProvider.dart';
+import 'package:game_controler/protocol.dart';
 import '../style.dart';
 
 import 'package:sensors_plus/sensors_plus.dart';
@@ -101,22 +102,16 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
     super.dispose();
   }
 
-  void sendUDP(Map<String, dynamic> data) {
+  void sendUDP(Uint8List data) {
     if (!_isSocketReady || socket == null || serverAddress == null) return;
-    
-    // Add timestamp for backend latency measurement
-    data['timestamp'] = DateTime.now().millisecondsSinceEpoch;
-    
-    final bytes = utf8.encode(jsonEncode(data));
-    socket!.send(bytes, serverAddress!, port);
+    socket!.send(data, serverAddress!, port);
   }
 
   void sendMove(String side, double x, double y) {
-    sendUDP({"type": "move", "side": side, "x": x, "y": y});
+    sendUDP(encodeMove(side, x, y));
   }
 
   void sendButton(String side, int index, bool pressed) {
-    // Haptic Feedback
     if (pressed) {
       final settings = Provider.of<SettingsProvider>(context, listen: false);
       if (settings.hapticFeedbackEnabled) {
@@ -124,11 +119,7 @@ class _Playstation_ControllerState extends State<Playstation_Controller> {
       }
     }
 
-    sendUDP({
-      "type": pressed ? "button_down" : "button_up",
-      "side": side,
-      "index": index,
-    });
+    sendUDP(encodeButton(side, index, pressed));
 
     final key = "${side}_$index";
     setState(() {

@@ -1,6 +1,6 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:game_controler/Elements/buttons.dart';
@@ -11,6 +11,7 @@ import 'package:provider/provider.dart';
 import 'package:game_controler/Settings/settingsProvider.dart';
 import 'package:game_controler/Models/custom_layout_model.dart';
 import 'package:game_controler/Elements/status_indicator.dart';
+import 'package:game_controler/protocol.dart';
 import '../style.dart';
 import 'package:vibration/vibration.dart';
 
@@ -76,15 +77,13 @@ class _CustomControllerState extends State<CustomController> {
     super.dispose();
   }
 
-  void sendUDP(Map<String, dynamic> data) {
+  void sendUDP(Uint8List data) {
     if (!_isSocketReady || socket == null || serverAddress == null) return;
-    data['timestamp'] = DateTime.now().millisecondsSinceEpoch;
-    final bytes = utf8.encode(jsonEncode(data));
-    socket!.send(bytes, serverAddress!, port);
+    socket!.send(data, serverAddress!, port);
   }
 
   void sendMove(String side, double x, double y) {
-    sendUDP({"type": "move", "side": side, "x": x, "y": y});
+    sendUDP(encodeMove(side, x, y));
   }
 
   void sendButton(String side, int index, bool pressed) {
@@ -95,11 +94,7 @@ class _CustomControllerState extends State<CustomController> {
       }
     }
 
-    sendUDP({
-      "type": pressed ? "button_down" : "button_up",
-      "side": side,
-      "index": index,
-    });
+    sendUDP(encodeButton(side, index, pressed));
 
     final key = "${side}_$index";
     setState(() {

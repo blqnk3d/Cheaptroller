@@ -1,7 +1,7 @@
 // lib/Xbox_Controller.dart
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:game_controler/Elements/buttons.dart';
@@ -10,6 +10,7 @@ import 'package:game_controler/Elements/joystick.dart';
 import 'package:game_controler/Elements/middlebutton.dart';
 import 'package:game_controler/Elements/status_indicator.dart';
 import 'package:game_controler/Settings/settingsProvider.dart';
+import 'package:game_controler/protocol.dart';
 import 'package:provider/provider.dart';
 import '../style.dart';
 
@@ -114,32 +115,25 @@ class _Xbox_ControllerState extends State<Xbox_Controller> {
     super.dispose();
   }
 
-  void sendUDP(Map<String, dynamic> data) {
+  void sendUDP(Uint8List data) {
     if (!_isSocketReady || socket == null || serverAddress == null) return;
-    
-    // Add timestamp for backend latency measurement
-    data['timestamp'] = DateTime.now().millisecondsSinceEpoch;
-    
-    final bytes = utf8.encode(jsonEncode(data));
-    socket!.send(bytes, serverAddress!, port);
+    socket!.send(data, serverAddress!, port);
   }
 
   void sendMove(String side, double x, double y) {
-    sendUDP({"type": "move", "side": side, "x": x, "y": y});
+    sendUDP(encodeMove(side, x, y));
   }
 
   void sendButton(String side, int index, bool pressed) {
     final key = "${side}_$index";
     
-    // Debounce rapid fire gestures
     final now = DateTime.now();
     final lastTime = _lastButtonTime[key] ?? DateTime.now().subtract(const Duration(seconds: 1));
     if (now.difference(lastTime).inMilliseconds < _gestureDebounceMs) {
-      return;  // Skip this update, too soon
+      return;
     }
     _lastButtonTime[key] = now;
     
-    // Haptic Feedback
     if (pressed) {
       final settings = Provider.of<SettingsProvider>(context, listen: false);
       if (settings.hapticFeedbackEnabled) {
@@ -147,11 +141,7 @@ class _Xbox_ControllerState extends State<Xbox_Controller> {
       }
     }
 
-    sendUDP({
-      "type": pressed ? "button_down" : "button_up",
-      "side": side,
-      "index": index,
-    });
+    sendUDP(encodeButton(side, index, pressed));
 
     setState(() {
       if (pressed) {
