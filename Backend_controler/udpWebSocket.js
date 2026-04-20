@@ -25,6 +25,8 @@ const clients = new Map();
 
 const STICK_DEADZONE = 0.05; // Slight increase to 5% to be safe
 
+const CLIENT_TIMEOUT_MS = 10000; // Close controller after 10 seconds of no data
+
 // High-priority buttons (fastest response needed)
 const PRIORITY_BUTTONS = new Set([0, 1, 2, 3]); // A, B, X, Y
 
@@ -112,7 +114,7 @@ udpServer.on("message", (msg, rinfo) => {
 
   const { type: t, side, index, x, y, timestamp, events } = d;
 
-  const clientKey = `${rinfo.address}:${rinfo.port}`;
+  const clientKey = rinfo.address;
   let client = clients.get(clientKey);
 
   if (!client) {
@@ -122,7 +124,6 @@ udpServer.on("message", (msg, rinfo) => {
       client = {
         id: controllerId,
         address: rinfo.address,
-        port: rinfo.port,
         lastSeen: Date.now(),
         stickState: { left: { x: 0, y: 0 }, right: { x: 0, y: 0 } },
         buttonState: new Array(14).fill(false),
@@ -230,6 +231,21 @@ function startUdpServer(port = UDP_PORT) {
     } catch (e) {}
     logger.info("UDP running on %s", port);
   });
+
+  setInterval(() => {
+    const now = Date.now();
+    for (const [key, client] of clients) {
+      if (now - client.lastSeen > CLIENT_TIMEOUT_MS) {
+        try {
+          gamepad.close(client.id);
+          logger.info(`🗑️  Closed stale controller ${client.id} for ${key} (no data for ${CLIENT_TIMEOUT_MS}ms)`);
+        } catch (e) {
+          logger.error(`Error closing controller ${client.id}:`, e);
+        }
+        clients.delete(key);
+      }
+    }
+  }, 2000);
 }
 
 function initSocketIO(httpServer) {
