@@ -85,6 +85,7 @@ class ControllerProvider extends ChangeNotifier {
         if (now.difference(last).inMilliseconds >= _joystickRateMs) {
           queueMove(side, pos.dx, pos.dy);
           _lastJoystickSend[side] = now;
+          _joystickChanged[side] = false;
         }
       }
     }
