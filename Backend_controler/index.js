@@ -1,6 +1,4 @@
 const config = require("./config");
-config.loadConfig();
-
 const { startUdpServer, UDP_PORT, stopUdpServer } = require("./udpWebSocket");
 const { startWebServer, WEB_PORT } = require("./webserver");
 const logger = require("./logger");

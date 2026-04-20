@@ -1,8 +1,6 @@
-// utils.js
 const os = require('os');
 
-
-function getAllLocalIPs(webPort) {
+function getAllLocalIPs() {
     const ips = [];
     for (const name of Object.keys(os.networkInterfaces()))
         for (const net of os.networkInterfaces()[name])

@@ -6,13 +6,13 @@ const logger = require("./logger");
 const { decodeMessage, isBinaryMessage } = require("./protocol");
 const config = require("./config");
 
-const loadedConfig = config.loadConfig();
+const cfg = config.getConfig();
 
-const UDP_PORT = loadedConfig.udpPort;
+const UDP_PORT = cfg.udpPort;
 let ioInstance = null;
 let shuttingDown = false;
 
-const DEBUG_PROTOCOL = loadedConfig.debugProtocol;
+const DEBUG_PROTOCOL = cfg.debugProtocol;
 
 function debugProtocol(...args) {
   if (DEBUG_PROTOCOL) {
@@ -24,12 +24,9 @@ function debugProtocol(...args) {
 // Map<string, Object> where key is "ip:port"
 const clients = new Map();
 
-const STICK_DEADZONE = loadedConfig.stickDeadzone;
+const STICK_DEADZONE = cfg.stickDeadzone;
 
-const CLIENT_TIMEOUT_MS = loadedConfig.clientTimeoutMs;
-
-// High-priority buttons (fastest response needed)
-const _PRIORITY_BUTTONS = new Set([0, 1, 2, 3]); // A, B, X, Y
+const CLIENT_TIMEOUT_MS = cfg.clientTimeoutMs;
 
 // DPAD lookup
 const DPAD_INDICES = new Set([10, 11, 12, 13]);
@@ -61,7 +58,7 @@ const latencyStats = {
   max: -Infinity,
   sum: 0,
   recent: [],
-  maxRecentSize: loadedConfig.latencyStatsMaxSize,
+  maxRecentSize: cfg.latencyStatsMaxSize,
 };
 
 function recordLatency(latencyMs) {
@@ -223,10 +220,17 @@ function processEvent(client, d) {
 
 // Error handling
 udpServer.on("error", (err) => {
-  logger.error("UDP server error: %o", err);
+  if (err.code === 'EADDRINUSE') {
+    logger.error(`UDP port ${UDP_PORT} is already in use. Please choose a different port.`);
+  } else if (err.code === 'EACCES') {
+    logger.error(`Permission denied to use UDP port ${UDP_PORT}. Try a port above 1024.`);
+  } else {
+    logger.error("UDP server error: %o", err);
+  }
   try {
     udpServer.close();
   } catch (_) {}
+  process.exit(1);
 });
 
 function startUdpServer(port = UDP_PORT) {

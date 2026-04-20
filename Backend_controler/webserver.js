@@ -28,6 +28,16 @@ function startWebServer(port = WEB_PORT) {
         res.json(getLatencyStats());
     });
 
+    // Health check endpoint
+    app.get('/api/health', (req, res) => {
+        res.json({
+            status: 'ok',
+            uptime: process.uptime(),
+            memory: process.memoryUsage(),
+            timestamp: Date.now()
+        });
+    });
+
     // Shutdown endpoint
     app.post('/api/shutdown', (req, res) => {
         res.json({ status: 'shutting down' });
@@ -61,6 +71,17 @@ function startWebServer(port = WEB_PORT) {
     // SPA fallback
     app.get('/', (req, res) => {
         res.sendFile(path.join(publicPath, 'index.html'));
+    });
+
+    httpServer.on('error', (err) => {
+        if (err.code === 'EADDRINUSE') {
+            console.error(`❌ Port ${port} is already in use. Please choose a different port.`);
+        } else if (err.code === 'EACCES') {
+            console.error(`❌ Permission denied to use port ${port}. Try a port above 1024.`);
+        } else {
+            console.error(`❌ Server error: ${err.message}`);
+        }
+        process.exit(1);
     });
 
     httpServer.listen(port, () => {

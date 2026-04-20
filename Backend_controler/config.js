@@ -26,9 +26,51 @@ const DEFAULTS = {
     bonjourName: 'Cheaptroller PC'
 };
 
+const ConfigSchema = {
+    webPort: { min: 1, max: 65535, type: 'number' },
+    udpPort: { min: 1, max: 65535, type: 'number' },
+    stickDeadzone: { min: 0, max: 1, type: 'number' },
+    clientTimeoutMs: { min: 1000, max: 3600000, type: 'number' },
+    latencyStatsMaxSize: { min: 1, max: 1000, type: 'number' },
+    debugProtocol: { type: 'boolean' },
+    openBrowser: { type: 'boolean' },
+    bonjourName: { type: 'string', minLen: 1, maxLen: 63 }
+};
+
 let config = { ...DEFAULTS };
+let loaded = false;
+
+function validateConfigValue(key, value) {
+    const schema = ConfigSchema[key];
+    if (!schema) return false;
+
+    if (schema.type === 'number') {
+        const num = Number(value);
+        if (isNaN(num)) return false;
+        if (schema.min !== undefined && num < schema.min) return false;
+        if (schema.max !== undefined && num > schema.max) return false;
+        return num;
+    }
+
+    if (schema.type === 'boolean') {
+        return value === true || value === false || value === 'true' || value === 'false'
+            ? (typeof value === 'string' ? value === 'true' : value)
+            : false;
+    }
+
+    if (schema.type === 'string') {
+        const str = String(value);
+        if (schema.minLen !== undefined && str.length < schema.minLen) return false;
+        if (schema.maxLen !== undefined && str.length > schema.maxLen) return false;
+        return str;
+    }
+
+    return false;
+}
 
 function loadConfig() {
+    if (loaded) return config;
+
     const filePath = getConfigFilePath();
     try {
         const dir = path.dirname(filePath);
@@ -37,8 +79,14 @@ function loadConfig() {
         }
         if (fs.existsSync(filePath)) {
             const data = fs.readFileSync(filePath, 'utf8');
-            const loaded = JSON.parse(data);
-            config = { ...DEFAULTS, ...loaded };
+            const parsed = JSON.parse(data);
+            config = { ...DEFAULTS };
+            for (const key of Object.keys(parsed)) {
+                const validated = validateConfigValue(key, parsed[key]);
+                if (validated !== false) {
+                    config[key] = validated;
+                }
+            }
             console.log('[Config] Loaded from', filePath);
         } else {
             config = { ...DEFAULTS };
@@ -49,6 +97,8 @@ function loadConfig() {
         console.error('[Config] Error:', err.message);
         config = { ...DEFAULTS };
     }
+
+    loaded = true;
     return config;
 }
 
@@ -75,11 +125,9 @@ function getConfig() {
 function setConfig(newValues) {
     for (const key of Object.keys(newValues)) {
         if (key in DEFAULTS) {
-            const val = newValues[key];
-            if (typeof DEFAULTS[key] === 'number') {
-                config[key] = Number(val);
-            } else {
-                config[key] = val;
+            const validated = validateConfigValue(key, newValues[key]);
+            if (validated !== false) {
+                config[key] = validated;
             }
         }
     }
