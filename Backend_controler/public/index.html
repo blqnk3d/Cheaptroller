@@ -13,7 +13,7 @@
   </nav>
 
   <main class="container" id="home-page">
-    <h1>Device IP</h1>
+    <h1>Cheaptroller</h1>
 
     <section class="card">
       <h2>Available IPs</h2>
@@ -25,12 +25,10 @@
       <canvas id="qr-code"></canvas>
     </section>
 
-
     <section class="card">
-  <h2>Server Control</h2>
-  <button id="shutdown-btn">Shutdown Server</button>
-</section>
-
+      <h2>Server Control</h2>
+      <button id="shutdown-btn">Shutdown Server</button>
+    </section>
   </main>
 
   <main class="container hidden" id="settings-page">
@@ -39,50 +37,56 @@
     <section class="card">
       <h2>Server Configuration</h2>
       <form id="settings-form">
-        <div class="form-group">
-          <label for="webPort">Web Server Port</label>
-          <input type="number" id="webPort" name="webPort" min="1" max="65535">
-          <small>Port for the web interface (requires restart)</small>
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="webPort">Web Server Port</label>
+            <input type="number" id="webPort" name="webPort" min="1" max="65535">
+            <small>Web interface port</small>
+          </div>
+
+          <div class="form-group">
+            <label for="udpPort">UDP Server Port</label>
+            <input type="number" id="udpPort" name="udpPort" min="1" max="65535">
+            <small>App communication</small>
+          </div>
+
+          <div class="form-group full-width">
+            <label for="bonjourName">mDNS Service Name</label>
+            <input type="text" id="bonjourName" name="bonjourName">
+            <small>Network discovery name</small>
+          </div>
+
+          <div class="form-group">
+            <label for="stickDeadzone">Stick Deadzone</label>
+            <input type="number" id="stickDeadzone" name="stickDeadzone" min="0" max="1" step="0.01">
+            <small>Controller deadzone (0-1)</small>
+          </div>
+
+          <div class="form-group">
+            <label for="clientTimeoutMs">Client Timeout</label>
+            <input type="number" id="clientTimeoutMs" name="clientTimeoutMs" min="1000" step="1000">
+            <small>Inactive disconnect (ms)</small>
+          </div>
+
+          <div class="form-group">
+            <label for="latencyStatsMaxSize">Latency Stats Size</label>
+            <input type="number" id="latencyStatsMaxSize" name="latencyStatsMaxSize" min="1" max="100">
+            <small>Sample count</small>
+          </div>
         </div>
 
-        <div class="form-group">
-          <label for="udpPort">UDP Server Port</label>
-          <input type="number" id="udpPort" name="udpPort" min="1" max="65535">
-          <small>Port for Android app communication (requires restart)</small>
-        </div>
-
-        <div class="form-group">
-          <label for="bonjourName">mDNS Service Name</label>
-          <input type="text" id="bonjourName" name="bonjourName">
-          <small>Name shown in network discovery (requires restart)</small>
-        </div>
-
-        <div class="form-group">
-          <label for="stickDeadzone">Stick Deadzone</label>
-          <input type="number" id="stickDeadzone" name="stickDeadzone" min="0" max="1" step="0.01">
-          <small>Deadzone threshold for controller sticks (0-1)</small>
-        </div>
-
-        <div class="form-group">
-          <label for="clientTimeoutMs">Client Timeout (ms)</label>
-          <input type="number" id="clientTimeoutMs" name="clientTimeoutMs" min="1000" step="1000">
-          <small>Timeout before disconnecting inactive clients</small>
-        </div>
-
-        <div class="form-group">
-          <label for="latencyStatsMaxSize">Latency Stats Size</label>
-          <input type="number" id="latencyStatsMaxSize" name="latencyStatsMaxSize" min="1" max="100">
-          <small>Number of recent latency samples to keep</small>
-        </div>
-
-        <div class="form-group checkbox">
-          <input type="checkbox" id="openBrowser" name="openBrowser">
-          <label for="openBrowser">Open browser on startup</label>
-        </div>
-
-        <div class="form-group checkbox">
-          <input type="checkbox" id="debugProtocol" name="debugProtocol">
-          <label for="debugProtocol">Enable protocol debug logging</label>
+        <div class="form-section">
+          <h3>Options</h3>
+          <div class="checkbox-group">
+            <label class="checkbox-item">
+              <input type="checkbox" id="openBrowser" name="openBrowser">
+              <span>Open browser on startup</span>
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" id="debugProtocol" name="debugProtocol">
+              <span>Enable protocol debug logging</span>
+            </label>
+          </div>
         </div>
 
         <div class="form-actions">
