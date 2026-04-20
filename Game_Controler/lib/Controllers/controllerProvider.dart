@@ -10,6 +10,7 @@ class ControllerProvider extends ChangeNotifier {
   RawDatagramSocket? _socket;
   InternetAddress? _serverAddress;
   bool _isSocketReady = false;
+  SettingsProvider? _settings;
 
   static const int _port = 8080;
   static const double _deadzone = 0.05;
@@ -37,6 +38,25 @@ class ControllerProvider extends ChangeNotifier {
   bool get isConnected => _isSocketReady;
 
   Future<void> init(SettingsProvider settings) async {
+    _settings = settings;
+    settings.addListener(_onSettingsChanged);
+    await _initSocket(settings);
+  }
+
+  void _onSettingsChanged() {
+    if (_settings != null) {
+      _initSocket(_settings!);
+    }
+  }
+
+  Future<void> _initSocket(SettingsProvider settings) async {
+    if (settings.ipAddress.isEmpty) {
+      _socket?.close();
+      _serverAddress = null;
+      setSocketReady(false);
+      return;
+    }
+
     if (_socket != null && _serverAddress?.address == settings.ipAddress) {
       return;
     }
@@ -144,6 +164,7 @@ class ControllerProvider extends ChangeNotifier {
 
   @override
   void dispose() {
+    _settings?.removeListener(_onSettingsChanged);
     _batchTimer?.cancel();
     _joystickTimer?.cancel();
     _socket?.close();
