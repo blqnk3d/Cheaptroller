@@ -3,8 +3,9 @@ const http = require('http');
 const path = require('path');
 const { getAllLocalIPs } = require('./utils');
 const { initSocketIO, getLatencyStats } = require('./udpWebSocket');
+const config = require('./config');
 
-const WEB_PORT = 3000;
+const WEB_PORT = config.getConfig().webPort;
 
 let httpServer = null;
 let ioInstance = null;
@@ -31,6 +32,26 @@ function startWebServer(port = WEB_PORT) {
     app.post('/api/shutdown', (req, res) => {
         res.json({ status: 'shutting down' });
         shutdown('web endpoint');
+    });
+
+    // GET config endpoint
+    app.get('/api/config', (req, res) => {
+        const cfg = config.getConfig();
+        cfg.configPath = config.getConfigFilePath();
+        res.json(cfg);
+    });
+
+    // SET config endpoint
+    app.post('/api/config', express.json(), (req, res) => {
+        const newConfig = config.setConfig(req.body);
+        config.saveConfig();
+        res.json(newConfig);
+    });
+
+    // Reset config endpoint
+    app.post('/api/config/reset', (req, res) => {
+        config.resetConfig();
+        res.json(config.getConfig());
     });
 
     // Serve static files

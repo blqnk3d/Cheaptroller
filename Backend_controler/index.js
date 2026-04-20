@@ -1,8 +1,13 @@
+const config = require("./config");
+config.loadConfig();
+
 const { startUdpServer, UDP_PORT, stopUdpServer } = require("./udpWebSocket");
 const { startWebServer, WEB_PORT } = require("./webserver");
 const logger = require("./logger");
 const { exec } = require("child_process");
 const { Bonjour } = require("bonjour-service");
+
+const cfg = config.getConfig();
 
 // Start Servers
 startUdpServer(UDP_PORT);
@@ -10,8 +15,8 @@ const { httpServer } = startWebServer(WEB_PORT);
 
 // mDNS Advertisement
 const bonjour = new Bonjour();
-bonjour.publish({ name: "Cheaptroller PC", type: "http", port: WEB_PORT });
-logger.info(`mDNS advertising 'Cheaptroller PC' on port ${WEB_PORT}`);
+bonjour.publish({ name: cfg.bonjourName, type: "http", port: WEB_PORT });
+logger.info(`mDNS advertising '${cfg.bonjourName}' on port ${WEB_PORT}`);
 
 // Funktion zum Browser-Öffnen
 function openBrowser(url) {
@@ -32,17 +37,16 @@ function openBrowser(url) {
 }
 
 // Browser nach kurzem Delay öffnen
-setTimeout(() => {
-  const url = `http://localhost:${WEB_PORT}`;
-  openBrowser(url);
-}, 500);
+if (cfg.openBrowser) {
+  setTimeout(() => {
+    const url = `http://localhost:${WEB_PORT}`;
+    openBrowser(url);
+  }, 500);
+}
 
 // Graceful Shutdown
 function gracefulShutdown(signal) {
   logger.info("SIG received, shutting down: %s", signal);
-  try {
-    if (tickTimer) clearTimeout(tickTimer);
-  } catch (e) {}
   try {
     if (httpServer && typeof httpServer.close === "function")
       httpServer.close();

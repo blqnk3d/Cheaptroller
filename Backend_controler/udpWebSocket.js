@@ -4,14 +4,15 @@ const { Server } = require("socket.io");
 const gamepad = require("./gamepad.node");
 const logger = require("./logger");
 const { decodeMessage, isBinaryMessage } = require("./protocol");
+const config = require("./config");
 
-// UDP
-const UDP_PORT = 8080;
+const loadedConfig = config.loadConfig();
+
+const UDP_PORT = loadedConfig.udpPort;
 let ioInstance = null;
 let shuttingDown = false;
 
-// Debug logging for protocol
-const DEBUG_PROTOCOL = process.env.DEBUG_PROTOCOL === "1";
+const DEBUG_PROTOCOL = loadedConfig.debugProtocol;
 
 function debugProtocol(...args) {
   if (DEBUG_PROTOCOL) {
@@ -23,9 +24,9 @@ function debugProtocol(...args) {
 // Map<string, Object> where key is "ip:port"
 const clients = new Map();
 
-const STICK_DEADZONE = 0.05; // Slight increase to 5% to be safe
+const STICK_DEADZONE = loadedConfig.stickDeadzone;
 
-const CLIENT_TIMEOUT_MS = 1000 * 60 * 5; // Close controller after 5 min seconds of no data
+const CLIENT_TIMEOUT_MS = loadedConfig.clientTimeoutMs;
 
 // High-priority buttons (fastest response needed)
 const _PRIORITY_BUTTONS = new Set([0, 1, 2, 3]); // A, B, X, Y
@@ -60,7 +61,7 @@ const latencyStats = {
   max: -Infinity,
   sum: 0,
   recent: [],
-  maxRecentSize: 10,
+  maxRecentSize: loadedConfig.latencyStatsMaxSize,
 };
 
 function recordLatency(latencyMs) {
