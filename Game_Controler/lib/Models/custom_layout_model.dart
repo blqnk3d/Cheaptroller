@@ -29,12 +29,12 @@ class ControlElement {
   };
 
   factory ControlElement.fromJson(Map<String, dynamic> json) => ControlElement(
-    type: ControlType.values[json['type']],
-    x: json['x'],
-    y: json['y'],
-    size: json['size'],
-    side: json['side'],
-    label: json['label'] ?? '',
+    type: ControlType.values[json['type'] as int],
+    x: (json['x'] as num).toDouble(),
+    y: (json['y'] as num).toDouble(),
+    size: (json['size'] as num).toDouble(),
+    side: json['side'] as String,
+    label: json['label'] as String? ?? '',
   );
 }
 
