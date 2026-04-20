@@ -94,7 +94,7 @@ Uint8List encodeHeartbeat([int? timestamp]) {
 Uint8List encodeBatch(List<InputEvent> events) {
   if (events.isEmpty) return Uint8List(0);
 
-  int totalSize = 1 + events.fold(0, (sum, e) => sum + e.byteSize);
+  int totalSize = 2 + events.fold(0, (sum, e) => sum + e.byteSize);
   final buffer = ByteData(totalSize);
 
   buffer.setUint8(0, MsgTypes.batch);
