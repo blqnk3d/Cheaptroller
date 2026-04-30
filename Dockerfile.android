@@ -1,0 +1,53 @@
+FROM ghcr.io/cirruslabs/flutter:3.38.7
+
+ARG ANDROID_COMPILE_SDK=34
+ARG ANDROID_BUILD_TOOLS=34.0.0
+ARG ANDROID_SDK_ROOT=/opt/android-sdk
+ARG JAVA_VERSION=17
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    openjdk-${JAVA_VERSION}-jdk \
+    wget \
+    unzip \
+    curl \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set Java environment
+ENV JAVA_HOME=/usr/lib/jvm/java-${JAVA_VERSION}-openjdk-amd64
+ENV PATH=$JAVA_HOME/bin:$PATH
+
+# Install Android SDK Command-line Tools
+RUN mkdir -p ${ANDROID_SDK_ROOT}/cmdline-tools && \
+    wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O /tmp/cmdline-tools.zip && \
+    unzip -q /tmp/cmdline-tools.zip -d /tmp/ && \
+    mv /tmp/cmdline-tools/* ${ANDROID_SDK_ROOT}/cmdline-tools/latest && \
+    rm /tmp/cmdline-tools.zip
+
+ENV PATH=${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin:${ANDROID_SDK_ROOT}/platform-tools:${PATH}
+
+# Accept Android SDK licenses and install required packages
+RUN yes | sdkmanager --licenses || true && \
+    sdkmanager \
+    "platforms;android-${ANDROID_COMPILE_SDK}" \
+    "build-tools;${ANDROID_BUILD_TOOLS}" \
+    "platform-tools" \
+    "ndk;26.1.10909125"
+
+# Set Android environment variables
+ENV ANDROID_HOME=${ANDROID_SDK_ROOT}
+ENV ANDROID_SDK_ROOT=${ANDROID_SDK_ROOT}
+
+WORKDIR /app
+
+# Copy Flutter app
+COPY Game_Controler /app
+
+# Get Flutter dependencies
+RUN flutter pub get
+
+# Build Android APK (release)
+RUN flutter build apk --release -v
+
+# Output location: /app/build/app/outputs/flutter-apk/app-release.apk

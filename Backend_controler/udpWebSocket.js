@@ -31,10 +31,10 @@ const CLIENT_TIMEOUT_MS = cfg.clientTimeoutMs;
 // DPAD lookup
 const DPAD_INDICES = new Set([10, 11, 12, 13]);
 const DPAD_MAP = {
-  10: "up",
-  11: "down",
-  12: "left",
-  13: "right",
+  10: "Up",
+  11: "Down",
+  12: "Left",
+  13: "Right",
 };
 
 // Button mapping
@@ -130,7 +130,6 @@ udpServer.on("message", (msg, rinfo) => {
         lastSeen: Date.now(),
         stickState: { left: { x: 0, y: 0 }, right: { x: 0, y: 0 } },
         buttonState: new Array(14).fill(false),
-        dpadState: { up: false, down: false, left: false, right: false },
       };
 
       clients.set(clientKey, client);
@@ -154,8 +153,51 @@ udpServer.on("message", (msg, rinfo) => {
 
   if (t === "batch" && events) {
     debugProtocol("Processing BATCH with", events.length, "events");
+
+    const batchSticks = {
+      left: { x: null, y: null },
+      right: { x: null, y: null },
+    };
+    const batchDpad = { x: 0, y: 0, changed: false };
+
+    // 1. Process all button events immediately (High Priority)
+    // and collect the LATEST stick/dpad state from the batch
     for (const event of events) {
-      processEvent(client, event);
+      if (event.type === "button_down" || event.type === "button_up") {
+        const idx =
+          typeof event.index === "string"
+            ? parseInt(event.index, 10)
+            : event.index;
+        
+        processEvent(client, event); // Process everything immediately for max speed
+
+        if (DPAD_INDICES.has(idx)) {
+          batchDpad.changed = true;
+          const pressed = event.type === "button_down";
+          if (idx === 10) batchDpad.y = pressed ? -1 : (client.buttonState[11] ? 1 : 0);
+          else if (idx === 11) batchDpad.y = pressed ? 1 : (client.buttonState[10] ? -1 : 0);
+          else if (idx === 12) batchDpad.x = pressed ? -1 : (client.buttonState[13] ? 1 : 0);
+          else if (idx === 13) batchDpad.x = pressed ? 1 : (client.buttonState[12] ? -1 : 0);
+        }
+      } else if (event.type === "move") {
+        if (event.side === "left" || event.side === "right") {
+          if (event.x !== undefined) batchSticks[event.side].x = event.x;
+          if (event.y !== undefined) batchSticks[event.side].y = event.y;
+        }
+      }
+    }
+
+    // 2. Apply consolidated Stick states (Low Priority)
+    for (const side of ["left", "right"]) {
+      const s = batchSticks[side];
+      if (s.x !== null || s.y !== null) {
+        processEvent(client, {
+          type: "move",
+          side,
+          x: s.x ?? client.stickState[side].x,
+          y: s.y ?? client.stickState[side].y,
+        });
+      }
     }
     return;
   }
@@ -204,14 +246,12 @@ function processEvent(client, d) {
     }
 
     if (DPAD_INDICES.has(idx)) {
-      const dir = DPAD_MAP[idx];
-      if (dir && client.dpadState[dir] !== pressed) {
-        client.dpadState[dir] = pressed;
-
-        const dX = client.dpadState.left ? -1 : client.dpadState.right ? 1 : 0;
-        const dY = client.dpadState.up ? -1 : client.dpadState.down ? 1 : 0;
-
-        gamepad.moveDpad(client.id, dX, dY);
+      if (client.buttonState[idx] !== pressed) {
+        client.buttonState[idx] = pressed;
+        // Calculate combined D-pad state
+        const dx = (client.buttonState[12] ? -1 : 0) + (client.buttonState[13] ? 1 : 0);
+        const dy = (client.buttonState[10] ? -1 : 0) + (client.buttonState[11] ? 1 : 0);
+        gamepad.moveDpad(client.id, dx, dy);
       }
       return;
     }
